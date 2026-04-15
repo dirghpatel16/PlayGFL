@@ -4,7 +4,7 @@ import { LAUNCH_UNLOCK_AT_IST } from "@/lib/config/launch";
 
 const tournament: Tournament = {
   id: "gfl-s1",
-  name: "GFL Season 1",
+  name: "PlayGFL Season 2",
   game: "BGMI",
   timezone: "Asia/Kolkata",
   launchAtIST: LAUNCH_UNLOCK_AT_IST,

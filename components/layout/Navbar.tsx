@@ -21,7 +21,7 @@ export function Navbar() {
     <header className="sticky top-0 z-40 border-b border-white/10 bg-bg/90 backdrop-blur">
       <div className="container-gfl flex h-16 items-center justify-between">
         <Link href="/" className="text-xl font-black uppercase tracking-[0.16em]">
-          GFL <span className="text-neon">BGMI</span>
+          Play<span className="text-neon">GFL</span>
         </Link>
         <nav className="hidden gap-6 text-xs font-semibold uppercase tracking-[0.16em] md:flex">
           {links.map(([name, href]) => (

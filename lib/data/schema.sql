@@ -1,4 +1,4 @@
--- GFL production schema for Supabase/Postgres
+-- PlayGFL production schema for Supabase/Postgres
 
 create extension if not exists "pgcrypto";
 
@@ -140,7 +140,7 @@ create policy "public read tournaments" on public.tournaments for select using (
 
 -- Seed tournament + captains + teams + auction pool
 insert into public.tournaments (id, name, timezone, launch_at, starts_at, registration_open, prize_pool_inr, format)
-values ('gfl-s1', 'GFL Season 1', 'Asia/Kolkata', '2026-04-15T19:00:00+05:30', '2026-04-18T21:00:00+05:30', true, 50000, '3 captains draft auction players')
+values ('gfl-s1', 'PlayGFL Season 2', 'Asia/Kolkata', '2026-04-15T19:00:00+05:30', '2026-04-18T21:00:00+05:30', true, 50000, '3 captains draft auction players')
 on conflict (id) do nothing;
 
 insert into public.captains (id, name, tag, region, purse_points)

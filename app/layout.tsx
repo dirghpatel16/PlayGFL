@@ -7,8 +7,8 @@ import { LaunchGate } from "@/components/launch/LaunchGate";
 import { isLaunchUnlocked } from "@/lib/config/launch";
 
 export const metadata: Metadata = {
-  title: "GFL BGMI League",
-  description: "Gand Faad League official esports tournament platform",
+  title: "PlayGFL | Official BGMI Platform",
+  description: "PlayGFL official BGMI esports tournament platform",
   metadataBase: new URL("https://gfl-league.vercel.app")
 };
 
@@ -23,7 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main className="container-gfl pb-24">{children}</main>
           <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/10 bg-bg/95 p-3 md:hidden">
             <Link href="/auth/signup" className="block border border-neon bg-neon p-3 text-center text-sm font-bold uppercase tracking-[0.14em] text-black">
-              Join GFL Now
+              Join PlayGFL
             </Link>
           </div>
           <Footer />

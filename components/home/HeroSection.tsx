@@ -12,7 +12,7 @@ export function HeroSection({ tournament }: HeroSectionProps) {
       <div className="hero-shell grid gap-8 p-5 sm:p-8 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10 lg:p-10">
         <div className="flex flex-col justify-between gap-7">
           <div>
-            <p className="eyebrow">Global Fight League • Bgmi Season 01</p>
+            <p className="eyebrow">PlayGFL • BGMI Season 02</p>
             <h1 className="hero-title mt-4">BATTLEGROUNDS. BUILT FOR CHAMPIONS.</h1>
             <p className="mt-5 max-w-xl text-sm text-white/75 sm:text-base">
               India&apos;s most serious BGMI competition platform. Verified talent, captain-led drafts, and league operations built for elite play.
@@ -41,11 +41,11 @@ export function HeroSection({ tournament }: HeroSectionProps) {
 
         <aside className="event-panel">
           <p className="eyebrow">Official Event Portal</p>
-          <h2 className="mt-4 text-2xl font-black uppercase leading-tight sm:text-3xl">GFL Championship Circuit</h2>
+          <h2 className="mt-4 text-2xl font-black uppercase leading-tight sm:text-3xl">PlayGFL Championship Circuit</h2>
           <div className="mt-6 space-y-4 border-t border-white/15 pt-5 text-sm">
             <div className="meta-row">
               <span>Season</span>
-              <strong>01 · 2026</strong>
+              <strong>02 · 2026</strong>
             </div>
             <div className="meta-row">
               <span>Game</span>
