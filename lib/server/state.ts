@@ -1,17 +1,22 @@
-import { AuctionPlayer, Captain, Team, Tournament, Announcement } from "@/lib/types/models";
-import { initializeAuction, startReveal, beginSelection, lockPick, proceedToNext, AuctionRuntime } from "@/lib/services/auction";
+import { AuctionPlayer, Captain, Team, Tournament, Announcement, User } from "@/lib/types/models";
+import { initializeAuction, setDrawingState, drawFromPot, beginAuctionForCurrent, lockPick, completeCurrentWithoutPick, proceedToNext, AuctionRuntime } from "@/lib/services/auction";
+import { LAUNCH_UNLOCK_AT_IST } from "@/lib/config/launch";
 
 const tournament: Tournament = {
   id: "gfl-s1",
   name: "GFL Season 1",
   game: "BGMI",
   timezone: "Asia/Kolkata",
-  launchAtIST: "2026-04-15T18:00:00+05:30",
+  launchAtIST: LAUNCH_UNLOCK_AT_IST,
   startsAtIST: "2026-04-18T21:00:00+05:30",
   registrationOpen: true,
   prizePoolINR: 50000,
   format: "3 captains draft auction players"
 };
+
+interface RuntimeUser extends User {
+  password: string;
+}
 
 interface RuntimeState {
   captains: Captain[];
@@ -19,6 +24,7 @@ interface RuntimeState {
   teams: Team[];
   announcements: Announcement[];
   auction: AuctionRuntime;
+  users: RuntimeUser[];
 }
 
 const state: RuntimeState = {
@@ -26,7 +32,8 @@ const state: RuntimeState = {
   players: [],
   teams: [],
   announcements: [],
-  auction: initializeAuction([], [])
+  auction: initializeAuction([], []),
+  users: []
 };
 
 function rebuildAuction() {
@@ -79,9 +86,14 @@ export function getAuctionState() {
   return state.auction;
 }
 
-export function auctionAction(action: "start_reveal" | "open_selection" | "pick" | "next" | "reset", captainId?: string) {
-  if (action === "start_reveal") state.auction = startReveal(state.auction);
-  if (action === "open_selection") state.auction = beginSelection(state.auction);
+export function auctionAction(
+  action: "set_drawing" | "draw_next" | "open_selection" | "pick" | "close_without_pick" | "next" | "reset",
+  captainId?: string,
+  manualPlayerId?: string
+) {
+  if (action === "set_drawing") state.auction = setDrawingState(state.auction);
+  if (action === "draw_next") state.auction = drawFromPot(state.auction, manualPlayerId);
+  if (action === "open_selection") state.auction = beginAuctionForCurrent(state.auction);
   if (action === "pick" && captainId) {
     state.auction = lockPick(state.auction, state.captains, captainId);
     state.players = state.players.map((p) =>
@@ -91,8 +103,44 @@ export function auctionAction(action: "start_reveal" | "open_selection" | "pick"
     );
     state.teams = state.auction.teams;
   }
+  if (action === "close_without_pick") state.auction = completeCurrentWithoutPick(state.auction);
   if (action === "next") state.auction = proceedToNext(state.auction);
   if (action === "reset") rebuildAuction();
 
   return state.auction;
+}
+
+
+export function signupUser(username: string, email: string, password: string) {
+  if (state.users.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
+    return { error: "Email already registered" as const };
+  }
+
+  const user: RuntimeUser = {
+    id: crypto.randomUUID(),
+    username,
+    email,
+    password,
+    emailVerified: false,
+    role: "player",
+    createdAt: new Date().toISOString()
+  };
+
+  state.users.push(user);
+  const { password: _password, ...safeUser } = user;
+  return { user: safeUser };
+}
+
+export function loginUser(email: string, password: string) {
+  const user = state.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+  if (!user || user.password !== password) {
+    return { error: "Invalid credentials" as const };
+  }
+
+  const { password: _password, ...safeUser } = user;
+  return { user: { ...safeUser, emailVerified: true } };
+}
+
+export function hasUser(email: string) {
+  return state.users.some((u) => u.email.toLowerCase() === email.toLowerCase());
 }

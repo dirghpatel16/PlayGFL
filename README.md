@@ -13,7 +13,7 @@ Production-style, mobile-first esports MVP for **GFL (Gand Faad League)**.
 - Dynamic backend APIs for captains, players, teams, announcements, and auction state (no hardcoded player/captain/team names).
 
 ## Time Logic (IST)
-- Website Launch: `2026-04-15T18:00:00+05:30`
+- Website Launch: `2026-04-15T18:15:00+05:30`
 - Tournament Start: `2026-04-18T21:00:00+05:30`
 
 The countdown automatically transitions:
@@ -24,6 +24,20 @@ The countdown automatically transitions:
 npm install
 npm run dev
 ```
+
+
+## Environment Variables
+Create a `.env.local` for production-like backend controls:
+
+```bash
+# Optional: enables admin protection for write endpoints when set
+ADMIN_API_KEY=your-secure-admin-key
+
+# Optional: marks DB as configured in health status (future DB adapter hook)
+DATABASE_URL=postgres://...
+```
+
+When `ADMIN_API_KEY` is set, all mutation routes require `x-admin-key` header.
 
 ## Deploy to Vercel
 1. Push this repository to GitHub.
@@ -36,7 +50,7 @@ Recommended production settings:
 - Node.js runtime: default Vercel runtime for Next.js 14.
 - Build command: `npm run build`
 - Install command: `npm install`
-- Health check endpoint after deploy: `/api/health`
+- Health check endpoint after deploy: `/api/health` (returns backend storage/auth readiness metadata).
 
 ### If Vercel build fails
 - Deprecation warnings during install are usually **non-blocking**.
@@ -55,7 +69,7 @@ Recommended production settings:
 
 ### Timezone-critical note
 The countdown uses hardcoded IST timestamps for the current season:
-- Launch: **April 15, 2026 at 6:00 PM IST** (`2026-04-15T18:00:00+05:30`)
+- Launch: **April 15, 2026 at 6:15 PM IST** (`2026-04-15T18:15:00+05:30`)
 - Tournament start: **April 18, 2026 at 9:00 PM IST** (`2026-04-18T21:00:00+05:30`)
 
 This guarantees consistent countdown behavior regardless of deploy region.

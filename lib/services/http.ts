@@ -7,6 +7,17 @@ export async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> 
     },
     cache: "no-store"
   });
-  if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+
+  if (!res.ok) {
+    let message = `Request failed: ${res.status}`;
+    try {
+      const payload = (await res.json()) as { error?: string; message?: string };
+      message = payload.error || payload.message || message;
+    } catch {
+      // Ignore JSON parse issues and preserve fallback message.
+    }
+    throw new Error(message);
+  }
+
   return res.json() as Promise<T>;
 }

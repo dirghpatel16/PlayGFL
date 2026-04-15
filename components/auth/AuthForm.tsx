@@ -2,10 +2,17 @@
 
 import { FormEvent, useState } from "react";
 import { saveMockUser } from "@/lib/services/auth";
+import { fetchJSON } from "@/lib/services/http";
+import { User } from "@/lib/types/models";
 import { useRouter } from "next/navigation";
 
 interface Props {
   mode: "login" | "signup" | "forgot";
+}
+
+interface ForgotResponse {
+  ok: boolean;
+  message: string;
 }
 
 export function AuthForm({ mode }: Props) {
@@ -14,36 +21,43 @@ export function AuthForm({ mode }: Props) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const onSubmit = (e: FormEvent) => {
+  const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (mode === "forgot") {
-      setMessage("Password reset email sent (mock). Check your inbox.");
-      return;
-    }
+    setMessage(null);
+    setLoading(true);
 
-    if (mode === "signup") {
-      saveMockUser({
-        id: crypto.randomUUID(),
-        username,
-        email,
-        emailVerified: false,
-        role: "player",
-        createdAt: new Date().toISOString()
+    try {
+      if (mode === "forgot") {
+        const res = await fetchJSON<ForgotResponse>("/api/auth/forgot", {
+          method: "POST",
+          body: JSON.stringify({ email })
+        });
+        setMessage(res.message);
+        return;
+      }
+
+      if (mode === "signup") {
+        await fetchJSON<User>("/api/auth/signup", {
+          method: "POST",
+          body: JSON.stringify({ username, email, password })
+        });
+        setMessage("Account created. Verification email queued. Login to continue.");
+        return;
+      }
+
+      const user = await fetchJSON<User>("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password })
       });
-      setMessage("Account created. Verification email sent (mock). Please verify before entering dashboard.");
-      return;
+      saveMockUser(user);
+      router.push("/dashboard");
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Unable to process request");
+    } finally {
+      setLoading(false);
     }
-
-    saveMockUser({
-      id: "demo-user",
-      username: username || "DemoPlayer",
-      email,
-      emailVerified: true,
-      role: "player",
-      createdAt: new Date().toISOString()
-    });
-    router.push("/dashboard");
   };
 
   return (
@@ -56,7 +70,9 @@ export function AuthForm({ mode }: Props) {
       {mode !== "forgot" && (
         <input className="w-full rounded-xl bg-white/5 p-3" placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
       )}
-      <button className="w-full rounded-xl bg-accent p-3 font-semibold" type="submit">Continue</button>
+      <button className="w-full rounded-xl bg-accent p-3 font-semibold disabled:opacity-60" type="submit" disabled={loading}>
+        {loading ? "Please wait..." : "Continue"}
+      </button>
       {message && <p className="text-sm text-neon">{message}</p>}
     </form>
   );

@@ -3,6 +3,7 @@ import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import Link from "next/link";
+import { headers } from "next/headers";
 
 export const metadata: Metadata = {
   title: "GFL BGMI League",
@@ -11,17 +12,25 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const pathname = headers().get("x-gfl-pathname") ?? "";
+  const isLaunchScreen = pathname === "/launch";
+
   return (
     <html lang="en">
       <body>
-        <Navbar />
-        <main className="container-gfl pb-24">{children}</main>
-        <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/10 bg-bg/95 p-3 md:hidden">
-          <Link href="/auth/signup" className="block rounded-xl bg-accent p-3 text-center text-sm font-semibold">
-            Join GFL Now
-          </Link>
-        </div>
-        <Footer />
+        {!isLaunchScreen && <Navbar />}
+        <main className={isLaunchScreen ? "" : "container-gfl pb-24"}>{children}</main>
+
+        {!isLaunchScreen && (
+          <>
+            <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/10 bg-bg/95 p-3 md:hidden">
+              <Link href="/auth/signup" className="block border border-neon bg-neon p-3 text-center text-sm font-bold uppercase tracking-[0.14em] text-black">
+                Join GFL Now
+              </Link>
+            </div>
+            <Footer />
+          </>
+        )}
       </body>
     </html>
   );

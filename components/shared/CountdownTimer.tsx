@@ -22,32 +22,37 @@ export function CountdownTimer({ launchISO, startISO }: Props) {
 
   const title =
     phase === "website_launch"
-      ? "Website Launch Countdown"
+      ? "Site Unlock"
       : phase === "tournament_start"
-        ? "Tournament Start Countdown"
-        : "Live / Started";
+        ? "League Kickoff"
+        : "Live";
 
   return (
-    <div className="card p-5 shadow-glow">
-      <p className="text-sm uppercase tracking-widest text-neon">{title}</p>
+    <div className="countdown-shell">
+      <div className="flex items-center justify-between gap-2">
+        <p className="eyebrow text-white/70">{title} Countdown</p>
+        <p className="text-[10px] uppercase tracking-[0.18em] text-white/45">IST</p>
+      </div>
+
       {phase === "live" ? (
-        <p className="mt-3 text-3xl font-extrabold">🔥 GFL is LIVE</p>
+        <p className="mt-3 text-2xl font-black uppercase tracking-wider text-neon sm:text-4xl">GFL LIVE NOW</p>
       ) : (
-        <div className="mt-4 grid grid-cols-4 gap-2 text-center">
+        <div className="countdown-grid mt-4">
           {[
-            { label: "D", value: parts.d },
-            { label: "H", value: parts.h },
-            { label: "M", value: parts.m },
-            { label: "S", value: parts.s }
+            { label: "Days", value: parts.d },
+            { label: "Hours", value: parts.h },
+            { label: "Mins", value: parts.m },
+            { label: "Secs", value: parts.s }
           ].map((item) => (
-            <div key={item.label} className="rounded-xl bg-white/5 p-3">
-              <p className="text-2xl font-bold">{String(item.value).padStart(2, "0")}</p>
-              <p className="text-xs text-white/70">{item.label}</p>
+            <div key={item.label}>
+              <p className="countdown-digit">{String(item.value).padStart(2, "0")}</p>
+              <p className="countdown-label">{item.label}</p>
             </div>
           ))}
         </div>
       )}
-      <p className="mt-3 text-xs text-white/60">Timezone: Asia/Kolkata (IST)</p>
+
+      <p className="mt-4 text-xs uppercase tracking-[0.18em] text-white/40">Target timezone: Asia/Kolkata</p>
     </div>
   );
 }
