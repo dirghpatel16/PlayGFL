@@ -1,8 +1,16 @@
 "use client";
 
-import { announcements } from "@/lib/data/mock";
+import { Announcement } from "@/lib/types/models";
 
-export function AnnouncementTicker() {
+export function AnnouncementTicker({ announcements }: { announcements: Announcement[] }) {
+  if (!announcements.length) {
+    return (
+      <div className="card mt-6 py-3 px-4 text-sm text-white/70">
+        No announcements yet. Admin posts will appear here live.
+      </div>
+    );
+  }
+
   const loopedAnnouncements = [...announcements, ...announcements].map((a, index) => ({
     ...a,
     loopKey: `${a.id}-${index}`

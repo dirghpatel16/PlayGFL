@@ -10,6 +10,7 @@ Production-style, mobile-first esports MVP for **GFL (Gand Faad League)**.
 - Draft auction engine (mode A) with state transitions and captain turn flow.
 - Admin controls scaffold.
 - Backend-ready TypeScript models and SQL schema suggestions.
+- Dynamic backend APIs for captains, players, teams, announcements, and auction state (no hardcoded player/captain/team names).
 
 ## Time Logic (IST)
 - Website Launch: `2026-04-15T18:00:00+05:30`
@@ -42,6 +43,15 @@ Recommended production settings:
 - The blocking issue seen previously was a TypeScript route typing mismatch in `MobileNavDrawer`.
 - This repository now fixes the route typing and removes `typedRoutes` experimental config to keep deploys stable.
 - If needed, clear Vercel cache and redeploy after pulling latest commit.
+
+## Backend behavior
+- The app now reads live data from API routes:
+  - `GET/POST /api/captains`
+  - `GET/POST /api/players`
+  - `GET/POST /api/teams`
+  - `GET/POST /api/announcements`
+  - `GET/POST /api/auction/state`
+- Add real captains/players/teams from `/admin`; nothing is pre-seeded in UI.
 
 ### Timezone-critical note
 The countdown uses hardcoded IST timestamps for the current season:
