@@ -26,6 +26,9 @@ create table if not exists public.player_profiles (
   experience_level text,
   completion_percent int not null default 0,
   approved boolean not null default false,
+  trial_registered boolean not null default false,
+  shortlisted boolean not null default false,
+  auction_pool boolean not null default false,
   stats jsonb not null default '{}',
   updated_at timestamptz not null default now()
 );

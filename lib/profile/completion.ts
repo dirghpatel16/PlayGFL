@@ -1,17 +1,12 @@
 import { PreferredRole } from "@/lib/types/models";
 
 export interface EditableProfile {
-  avatar_url?: string | null;
   bgmi_name?: string | null;
   bgmi_id?: string | null;
   preferred_roles?: PreferredRole[] | null;
-  bio?: string | null;
-  region?: string | null;
-  experience_level?: string | null;
-  stats?: Record<string, unknown> | null;
 }
 
-const required: (keyof EditableProfile)[] = ["bgmi_name", "bgmi_id", "preferred_roles", "bio", "region", "experience_level"];
+const required: (keyof EditableProfile)[] = ["bgmi_name", "bgmi_id", "preferred_roles"];
 
 export function completionPercent(profile: EditableProfile) {
   let filled = 0;

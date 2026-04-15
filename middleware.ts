@@ -13,7 +13,7 @@ function isStaticAsset(pathname: string) {
 }
 
 function requiresAuth(pathname: string) {
-  return pathname.startsWith("/dashboard") || pathname.startsWith("/admin") || pathname.startsWith("/auction");
+  return pathname.startsWith("/dashboard") || pathname.startsWith("/admin");
 }
 
 export function middleware(req: NextRequest) {

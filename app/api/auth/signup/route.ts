@@ -40,5 +40,5 @@ export async function POST(req: NextRequest) {
     }).catch(() => null);
   }
 
-  return NextResponse.json({ ok: true, message: "Signup created. Verify email before league actions." }, { status: 201 });
+  return NextResponse.json({ ok: true, message: "OTP sent. Enter the 6-digit code to verify your account." }, { status: 201 });
 }

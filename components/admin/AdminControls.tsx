@@ -99,7 +99,7 @@ export function AdminControls() {
       </form>
 
       <section className="card p-4">
-        <h3 className="font-semibold">Approve Player Profiles</h3>
+        <h3 className="font-semibold">User Roles & Shortlist</h3>
         <div className="mt-3 space-y-2">
           {users.length ? users.map((u) => (
             <div key={u.id} className="flex flex-wrap items-center justify-between gap-2 border border-white/10 p-2">
@@ -107,7 +107,11 @@ export function AdminControls() {
                 <p className="font-semibold">{u.username}</p>
                 <p className="text-xs text-white/60">{u.email} · {u.role} · {u.email_verified ? "Verified" : "Not verified"}</p>
               </div>
-              <button className="rounded-lg bg-white/10 px-3 py-2 text-xs" onClick={() => adminAction("approve_player", { userId: u.id })}>Approve Player</button>
+              <div className="flex flex-wrap gap-2">
+                                <button className="rounded-lg bg-white/10 px-3 py-2 text-xs" onClick={() => adminAction("shortlist_player", { userId: u.id })}>Shortlist</button>
+                <button className="rounded-lg bg-white/10 px-3 py-2 text-xs" onClick={() => adminAction("assign_user_role", { userId: u.id, role: "captain" })}>Make Captain</button>
+                <button className="rounded-lg bg-white/10 px-3 py-2 text-xs" onClick={() => adminAction("assign_user_role", { userId: u.id, role: "admin" })}>Make Admin</button>
+              </div>
             </div>
           )) : <p className="text-sm text-white/60">No registered users available yet.</p>}
         </div>

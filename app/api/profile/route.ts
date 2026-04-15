@@ -14,7 +14,10 @@ export async function GET() {
       preferred_roles: [],
       completion_percent: 0,
       approved: false,
-      stats: {}
+      stats: {},
+      trial_registered: false,
+      shortlisted: false,
+      auction_pool: false
     };
     const created = await supabaseAdminTable<any[]>("player_profiles", { method: "POST", body: JSON.stringify([empty]) });
     return NextResponse.json({ profile: created[0] ?? empty, emailVerified: Boolean(authUser.email_confirmed_at) });
