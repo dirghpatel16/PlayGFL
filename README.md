@@ -13,7 +13,7 @@ Production-style, mobile-first esports MVP for **GFL (Gand Faad League)**.
 - Dynamic backend APIs for captains, players, teams, announcements, and auction state (no hardcoded player/captain/team names).
 
 ## Time Logic (IST)
-- Website Launch: `2026-04-15T18:30:00+05:30`
+- Website Launch: `2026-04-15T19:00:00+05:30`
 - Tournament Start: `2026-04-18T21:00:00+05:30`
 
 The countdown automatically transitions:
@@ -69,7 +69,7 @@ Recommended production settings:
 
 ### Timezone-critical note
 The countdown uses hardcoded IST timestamps for the current season:
-- Launch: **April 15, 2026 at 6:30 PM IST** (`2026-04-15T18:30:00+05:30`)
+- Launch: **April 15, 2026 at 7:00 PM IST** (`2026-04-15T19:00:00+05:30`)
 - Tournament start: **April 18, 2026 at 9:00 PM IST** (`2026-04-18T21:00:00+05:30`)
 
 This guarantees consistent countdown behavior regardless of deploy region.

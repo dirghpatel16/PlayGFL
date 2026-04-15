@@ -1,5 +1,5 @@
-export const LAUNCH_UNLOCK_AT_IST = "2026-04-15T18:30:00+05:30";
-export const LAUNCH_UNLOCK_AT_LABEL = "6:30 PM IST";
+export const LAUNCH_UNLOCK_AT_IST = "2026-04-15T19:00:00+05:30";
+export const LAUNCH_UNLOCK_AT_LABEL = "7:00 PM IST";
 
 export function getLaunchDate() {
   return new Date(LAUNCH_UNLOCK_AT_IST);

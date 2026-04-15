@@ -8,7 +8,7 @@ export const tournament: Tournament = {
   name: "GFL Season 1",
   game: "BGMI",
   timezone: "Asia/Kolkata",
-  launchAtIST: "2026-04-15T18:30:00+05:30",
+  launchAtIST: "2026-04-15T19:00:00+05:30",
   startsAtIST: "2026-04-18T21:00:00+05:30",
   registrationOpen: true,
   prizePoolINR: 50000,
