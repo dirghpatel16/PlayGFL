@@ -37,6 +37,12 @@ Recommended production settings:
 - Install command: `npm install`
 - Health check endpoint after deploy: `/api/health`
 
+### If Vercel build fails
+- Deprecation warnings during install are usually **non-blocking**.
+- The blocking issue seen previously was a TypeScript route typing mismatch in `MobileNavDrawer`.
+- This repository now fixes the route typing and removes `typedRoutes` experimental config to keep deploys stable.
+- If needed, clear Vercel cache and redeploy after pulling latest commit.
+
 ### Timezone-critical note
 The countdown uses hardcoded IST timestamps for the current season:
 - Launch: **April 15, 2026 at 6:00 PM IST** (`2026-04-15T18:00:00+05:30`)

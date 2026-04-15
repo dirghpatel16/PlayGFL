@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import type { Route } from "next";
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  links: { label: string; href: string }[];
+  links: { label: string; href: Route }[];
 }
 
 export function MobileNavDrawer({ open, onClose, links }: Props) {

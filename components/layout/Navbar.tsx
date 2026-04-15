@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Menu } from "lucide-react";
 import { useState } from "react";
 import { MobileNavDrawer } from "@/components/layout/MobileNavDrawer";
+import type { Route } from "next";
 
 const links = [
   ["Home", "/"],
@@ -11,7 +12,7 @@ const links = [
   ["Auction", "/auction"],
   ["Players", "/players"],
   ["Dashboard", "/dashboard"]
-] as const;
+] as const satisfies readonly [string, Route][];
 
 export function Navbar() {
   const [open, setOpen] = useState(false);
