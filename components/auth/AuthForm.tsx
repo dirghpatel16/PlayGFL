@@ -1,9 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { saveMockUser } from "@/lib/services/auth";
 import { fetchJSON } from "@/lib/services/http";
-import { User } from "@/lib/types/models";
 import { useRouter } from "next/navigation";
 
 interface Props {
@@ -39,20 +37,25 @@ export function AuthForm({ mode }: Props) {
       }
 
       if (mode === "signup") {
-        await fetchJSON<User>("/api/auth/signup", {
+        await fetchJSON("/api/auth/signup", {
           method: "POST",
           body: JSON.stringify({ username, email, password })
         });
-        setMessage("Account created. Verification email queued. Login to continue.");
+        setMessage("Account created. Verify your email before league actions.");
         return;
       }
 
-      const user = await fetchJSON<User>("/api/auth/login", {
+      const login = await fetchJSON<{ emailVerified: boolean }>("/api/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password })
       });
-      saveMockUser(user);
+
+      if (!login.emailVerified) {
+        setMessage("Login successful, but email is not verified yet.");
+      }
+
       router.push("/dashboard");
+      router.refresh();
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Unable to process request");
     } finally {

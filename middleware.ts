@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isLaunchUnlocked } from "@/lib/config/launch";
+import { ACCESS_COOKIE } from "@/lib/auth/session";
 
 function isStaticAsset(pathname: string) {
   return (
@@ -11,12 +12,14 @@ function isStaticAsset(pathname: string) {
   );
 }
 
+function requiresAuth(pathname: string) {
+  return pathname.startsWith("/dashboard") || pathname.startsWith("/admin") || pathname.startsWith("/auction");
+}
+
 export function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
 
-  if (isStaticAsset(pathname)) {
-    return NextResponse.next();
-  }
+  if (isStaticAsset(pathname)) return NextResponse.next();
 
   const bypassEnabled = process.env.LAUNCH_GATE_BYPASS === "true";
   const unlocked = bypassEnabled || isLaunchUnlocked();
@@ -35,14 +38,16 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  if (requiresAuth(pathname) && !req.cookies.get(ACCESS_COOKIE)?.value) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/auth/login";
+    return NextResponse.redirect(url);
+  }
+
   const headers = new Headers(req.headers);
   headers.set("x-gfl-pathname", pathname);
 
-  return NextResponse.next({
-    request: {
-      headers
-    }
-  });
+  return NextResponse.next({ request: { headers } });
 }
 
 export const config = {

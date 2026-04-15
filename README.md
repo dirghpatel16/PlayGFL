@@ -39,6 +39,18 @@ DATABASE_URL=postgres://...
 
 When `ADMIN_API_KEY` is set, all mutation routes require `x-admin-key` header.
 
+
+## Supabase setup (required for production features)
+Set these env vars in `.env.local` and Vercel:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
+SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
+```
+
+Then execute `lib/data/schema.sql` in Supabase SQL editor to create tables, RLS policies, and seed data for tournament/captains/teams/auction pool.
+
 ## Deploy to Vercel
 1. Push this repository to GitHub.
 2. Import the repository in Vercel.
