@@ -5,7 +5,7 @@ import { Announcement, AuctionPlayer, Captain, Team, Tournament } from "@/lib/ty
 
 export const tournament: Tournament = {
   id: "gfl-s1",
-  name: "PlayGFL Season 2",
+  name: "GFL Season 2",
   game: "BGMI",
   timezone: "Asia/Kolkata",
   launchAtIST: "2026-04-15T19:00:00+05:30",

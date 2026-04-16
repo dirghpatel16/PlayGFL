@@ -7,7 +7,7 @@ import { fetchJSON } from "@/lib/services/http";
 interface DashboardPayload {
   paymentStatus: "unpaid" | "submitted" | "confirmed";
   paymentLabel?: string;
-  registrationStatus: "Not Registered" | "Registered for PlayGFL Season 2";
+  registrationStatus: "Not Registered" | "Registered for GFL Season 2";
   entryFee: number;
 }
 
@@ -25,7 +25,7 @@ export default function DashboardPage() {
   return (
     <div className="py-8">
       <section className="card p-5 space-y-4">
-        <h1 className="text-2xl font-bold">My PlayGFL Season 2 Status</h1>
+        <h1 className="text-2xl font-bold">My GFL Season 2 Status</h1>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="border border-white/15 bg-white/[0.02] p-4 text-sm">
             <p><strong>Entry Fee:</strong> ₹{data.entryFee}</p>
@@ -36,7 +36,7 @@ export default function DashboardPage() {
             <p>Pay ₹{data.entryFee} using QR, submit UTR, then wait for confirmation.</p>
             {data.paymentStatus === "unpaid" && <Link href="/payment" className="cta-primary mt-3">Go to Payment Page</Link>}
             {data.paymentStatus === "submitted" && <p className="mt-3 text-neon">Payment Submitted. Verification pending.</p>}
-            {data.paymentStatus === "confirmed" && <p className="mt-3 text-neon">Payment Confirmed. You are registered for PlayGFL Season 2.</p>}
+            {data.paymentStatus === "confirmed" && <p className="mt-3 text-neon">Payment Confirmed. You are registered for GFL Season 2.</p>}
           </div>
         </div>
       </section>

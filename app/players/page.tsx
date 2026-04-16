@@ -18,7 +18,7 @@ export default function PlayersPage() {
   return (
     <section className="py-8 space-y-6">
       <div>
-        <h1 className="section-title">PlayGFL Auction Player Pool</h1>
+        <h1 className="section-title">GFL Auction Player Pool</h1>
         {!players.length && (
           <p className="mt-3 text-sm text-white/70">The auction pool is being prepared. Approved players will appear here after trials and shortlisting.</p>
         )}

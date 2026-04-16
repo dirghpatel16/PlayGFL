@@ -5,7 +5,7 @@ import { completionPercent } from "@/lib/profile/completion";
 import { getPayment } from "@/lib/server/state";
 import { seasonConfig } from "@/lib/config/season";
 
-const paymentLabel = (status: string) => status === "confirmed" ? "Payment Confirmed" : status === "submitted" ? "Payment Submitted" : "Unpaid";
+const paymentLabel = (status: string) => status === "confirmed" ? "Payment Confirmed" : status === "submitted" ? "Payment Submitted" : status === "rejected" ? "Rejected" : "Unpaid";
 
 export async function GET() {
   const authUser = await getSessionUser();
@@ -30,7 +30,7 @@ export async function GET() {
       profile: created[0] ?? empty,
       paymentStatus,
       paymentLabel: paymentLabel(paymentStatus),
-      registrationStatus: paymentStatus === "confirmed" ? "Registered for PlayGFL Season 2" : "Not Registered",
+      registrationStatus: paymentStatus === "confirmed" ? "Registered for GFL Season 2" : "Not Registered",
       entryFee: seasonConfig.entryFee
     });
   }
@@ -39,7 +39,7 @@ export async function GET() {
     profile: rows[0],
     paymentStatus,
     paymentLabel: paymentLabel(paymentStatus),
-    registrationStatus: paymentStatus === "confirmed" ? "Registered for PlayGFL Season 2" : "Not Registered",
+    registrationStatus: paymentStatus === "confirmed" ? "Registered for GFL Season 2" : "Not Registered",
     entryFee: seasonConfig.entryFee
   });
 }

@@ -20,8 +20,8 @@ export function Navbar() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-bg/90 backdrop-blur">
-      <div className="container-gfl flex h-16 items-center justify-between">
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-bg/90 pt-[env(safe-area-inset-top)] backdrop-blur">
+      <div className="container-gfl flex h-14 items-center justify-between sm:h-16">
         <Link href="/" className="text-xl font-black uppercase tracking-[0.16em]">
           Play<span className="text-neon">GFL</span>
         </Link>
@@ -34,7 +34,7 @@ export function Navbar() {
         </nav>
         <button
           aria-label="Open navigation"
-          className="rounded-lg border border-white/20 p-2 md:hidden"
+          className="rounded-lg border border-white/20 bg-white/5 p-2 md:hidden"
           onClick={() => setOpen(true)}
         >
           <Menu size={20} />

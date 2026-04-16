@@ -8,13 +8,13 @@ interface HeroSectionProps {
 
 export function HeroSection({ tournament }: HeroSectionProps) {
   return (
-    <section className="pt-8 sm:pt-12">
-      <div className="hero-shell grid gap-8 p-5 sm:p-8 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10 lg:p-10">
-        <div className="flex flex-col justify-between gap-7">
+    <section className="pt-5 sm:pt-10">
+      <div className="hero-shell grid gap-6 p-4 sm:p-7 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10 lg:p-10">
+        <div className="flex flex-col justify-between gap-5 sm:gap-7">
           <div>
-            <p className="eyebrow">PlayGFL • Season 2</p>
-            <h1 className="hero-title mt-4">PLAYGFL SEASON 2 EVENT HUB</h1>
-            <p className="mt-5 max-w-xl text-sm text-white/75 sm:text-base">
+            <p className="eyebrow">GFL • Season 2</p>
+            <h1 className="hero-title mt-3">GFL SEASON 2 EVENT HUB</h1>
+            <p className="mt-4 max-w-xl text-sm leading-relaxed text-white/75 sm:text-base">
               A premium, mobile-first BGMI league hub for Season 2 with registration, payment, auction, standings, and public match coverage.
             </p>
           </div>
@@ -29,7 +29,7 @@ export function HeroSection({ tournament }: HeroSectionProps) {
             </div>
           )}
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <Link className="cta-primary" href="/auth/signup">
               Register
             </Link>
@@ -41,7 +41,7 @@ export function HeroSection({ tournament }: HeroSectionProps) {
 
         <aside className="event-panel">
           <p className="eyebrow">Official Event Portal</p>
-          <h2 className="mt-4 text-2xl font-black uppercase leading-tight sm:text-3xl">PlayGFL Season 2</h2>
+          <h2 className="mt-3 text-xl font-black uppercase leading-tight sm:mt-4 sm:text-3xl">GFL Season 2</h2>
           <div className="mt-6 space-y-4 border-t border-white/15 pt-5 text-sm">
             <div className="meta-row">
               <span>Season</span>

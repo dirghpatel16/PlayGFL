@@ -1,5 +1,5 @@
 export const seasonConfig = {
-  brand: "PlayGFL",
+  brand: "GFL",
   seasonLabel: "Season 2",
   totalPlayers: 12,
   captains: 3,
