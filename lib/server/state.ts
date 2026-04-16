@@ -2,6 +2,7 @@ import { AuctionPlayer, Captain, Team, Tournament, Announcement, User } from "@/
 import { initializeAuction, setDrawingState, drawFromPot, beginAuctionForCurrent, lockPick, completeCurrentWithoutPick, proceedToNext, AuctionRuntime } from "@/lib/services/auction";
 import { LAUNCH_UNLOCK_AT_IST } from "@/lib/config/launch";
 import { scoringConfig, seasonConfig } from "@/lib/config/season";
+import { RoundType, seasonMatchPlan } from "@/lib/config/matchFormat";
 
 const tournament: Tournament = {
   id: "gfl-s1",
@@ -15,29 +16,68 @@ const tournament: Tournament = {
   format: "3 captains draft auction players"
 };
 
-export interface MatchResult {
+export type PaymentStatus = "unpaid" | "submitted" | "confirmed" | "rejected";
+
+export interface PaymentEvent {
   id: string;
+  status: PaymentStatus;
+  note: string;
+  at: string;
+}
+
+export interface TeamMatchResultInput {
   teamId: string;
-  placement: 1 | 2 | 3;
+  placement: number;
   kills: number;
-  isGoldenRound: boolean;
-  nominatedPlayerKills?: number;
   bonusType?: "none" | "back_to_back" | "threepeat";
+  nominatedPlayerKills?: number;
+}
+
+export interface TeamMatchResult extends TeamMatchResultInput {
+  placementPoints: number;
+  killPoints: number;
+  bonusPoints: number;
+  goldenRoundBonus: number;
+  totalPoints: number;
+}
+
+export interface MatchLog {
+  id: string;
+  matchNumber: number;
+  block: number;
+  cycle: 1 | 2;
+  roundType: RoundType;
+  map: string;
+  winnerTeamId?: string;
+  entries: TeamMatchResult[];
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface TeamStanding {
   teamId: string;
   teamName: string;
+  matchesPlayed: number;
   placementPoints: number;
   killPoints: number;
   bonusPoints: number;
-  goldenModifierPoints: number;
+  goldenRoundBonus: number;
   totalPoints: number;
 }
 
 interface RuntimeUser extends User {
   password: string;
+}
+
+interface PaymentRecord {
+  status: PaymentStatus;
+  utr?: string;
+  payerName?: string;
+  screenshotName?: string;
+  screenshotDataUrl?: string;
+  submittedAt?: string;
+  updatedAt: string;
+  history: PaymentEvent[];
 }
 
 interface RuntimeState {
@@ -47,8 +87,8 @@ interface RuntimeState {
   announcements: Announcement[];
   auction: AuctionRuntime;
   users: RuntimeUser[];
-  payments: Record<string, { status: "unpaid" | "submitted" | "confirmed"; utr?: string; payerName?: string; screenshotName?: string; updatedAt: string }>;
-  results: MatchResult[];
+  payments: Record<string, PaymentRecord>;
+  matchLogs: MatchLog[];
 }
 
 const state: RuntimeState = {
@@ -59,11 +99,29 @@ const state: RuntimeState = {
   auction: initializeAuction([], []),
   users: [],
   payments: {},
-  results: []
+  matchLogs: []
 };
 
 function rebuildAuction() {
   state.auction = initializeAuction(state.players.filter((p) => !p.soldToCaptainId), state.teams);
+}
+
+function pointsForPlacement(roundType: RoundType, placement: number) {
+  if (roundType === "golden") {
+    if (placement === 1) return scoringConfig.goldenRounds.placement.first;
+    if (placement === 2) return scoringConfig.goldenRounds.placement.second;
+    if (placement === 3) return scoringConfig.goldenRounds.placement.third;
+    return 0;
+  }
+
+  if (placement === 1) return scoringConfig.normalRounds.placement.first;
+  if (placement === 2) return scoringConfig.normalRounds.placement.second;
+  if (placement === 3) return scoringConfig.normalRounds.placement.third;
+  return 0;
+}
+
+function buildPaymentEvent(status: PaymentStatus, note: string): PaymentEvent {
+  return { id: crypto.randomUUID(), status, note, at: new Date().toISOString() };
 }
 
 export function getPublicState() {
@@ -111,7 +169,6 @@ export function removePlayer(playerId: string) {
   rebuildAuction();
 }
 
-
 export function addTeam(name: string, captainId: string) {
   const team: Team = { id: crypto.randomUUID(), name, captainId, playerIds: [] };
   state.teams.push(team);
@@ -157,26 +214,51 @@ export function auctionAction(
   return state.auction;
 }
 
-export function setPayment(userId: string, details: { utr: string; payerName: string; screenshotName?: string }) {
-  state.payments[userId] = { status: "submitted", ...details, updatedAt: new Date().toISOString() };
-  return state.payments[userId];
-}
+export function submitPayment(userId: string, details: { utr: string; payerName: string; screenshotName: string; screenshotDataUrl?: string }) {
+  const duplicate = Object.entries(state.payments).find(([id, payment]) => id !== userId && payment.utr === details.utr);
+  if (duplicate) {
+    return { error: "UTR already used by another submission" as const };
+  }
 
-export function verifyPayment(userId: string) {
+  const now = new Date().toISOString();
   const existing = state.payments[userId];
-  state.payments[userId] = { ...(existing ?? { updatedAt: new Date().toISOString() }), status: "confirmed", updatedAt: new Date().toISOString() };
+  const nextHistory = [
+    ...(existing?.history ?? []),
+    buildPaymentEvent("submitted", "Payment proof submitted for verification")
+  ];
+
+  state.payments[userId] = {
+    status: "submitted",
+    utr: details.utr,
+    payerName: details.payerName,
+    screenshotName: details.screenshotName,
+    screenshotDataUrl: details.screenshotDataUrl,
+    submittedAt: now,
+    updatedAt: now,
+    history: nextHistory
+  };
+
+  return { payment: state.payments[userId] };
+}
+
+export function reviewPayment(userId: string, status: "confirmed" | "rejected") {
+  const existing = state.payments[userId];
+  const now = new Date().toISOString();
+  const base: PaymentRecord = existing ?? { status: "unpaid", updatedAt: now, history: [] };
+  const note = status === "confirmed" ? "Submission verified by commissioner" : "Submission rejected by commissioner";
+
+  state.payments[userId] = {
+    ...base,
+    status,
+    updatedAt: now,
+    history: [...base.history, buildPaymentEvent(status, note)]
+  };
+
   return state.payments[userId];
 }
 
-export function getPayment(userId: string) {
-  return state.payments[userId] ?? { status: "unpaid", updatedAt: new Date().toISOString() };
-}
-
-
-export function setPaymentStatus(userId: string, status: "unpaid" | "submitted" | "confirmed") {
-  const existing = state.payments[userId] ?? { updatedAt: new Date().toISOString() };
-  state.payments[userId] = { ...existing, status, updatedAt: new Date().toISOString() };
-  return state.payments[userId];
+export function getPayment(userId: string): PaymentRecord {
+  return state.payments[userId] ?? { status: "unpaid", updatedAt: new Date().toISOString(), history: [] };
 }
 
 export function getPaymentSubmissions(search = "") {
@@ -186,25 +268,79 @@ export function getPaymentSubmissions(search = "") {
     return {
       user_id: userId,
       username: user?.username ?? "Unknown",
+      email: user?.email ?? "",
       status: payment.status,
       payer_name: payment.payerName,
       utr: payment.utr,
       screenshot_name: payment.screenshotName,
-      updated_at: payment.updatedAt
+      screenshot_data_url: payment.screenshotDataUrl,
+      submitted_at: payment.submittedAt,
+      updated_at: payment.updatedAt,
+      history: payment.history
     };
   });
-  if (!keyword) return rows;
-  return rows.filter((r) => `${r.username} ${r.payer_name ?? ""} ${r.utr ?? ""}`.toLowerCase().includes(keyword));
+
+  const filtered = keyword
+    ? rows.filter((r) => `${r.username} ${r.payer_name ?? ""} ${r.utr ?? ""}`.toLowerCase().includes(keyword))
+    : rows;
+
+  return filtered.sort((a, b) => (b.updated_at || "").localeCompare(a.updated_at || ""));
 }
 
-export function addMatchResult(payload: Omit<MatchResult, "id" | "createdAt">) {
-  const row: MatchResult = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), ...payload };
-  state.results.unshift(row);
-  return row;
+export function saveMatchResult(payload: { matchNumber: number; roundType: RoundType; map: string; entries: TeamMatchResultInput[] }) {
+  const scheduleRef = seasonMatchPlan.find((m) => m.matchNumber === payload.matchNumber);
+  if (!scheduleRef) return { error: "Match number out of range" as const };
+
+  const now = new Date().toISOString();
+  const normalizedEntries: TeamMatchResult[] = payload.entries.map((entry) => {
+    const killPoints = entry.kills * scoringConfig.goldenRounds.killPoint;
+    const placementPoints = pointsForPlacement(payload.roundType, entry.placement);
+    const bonusPoints = entry.bonusType === "threepeat"
+      ? scoringConfig.bonuses.threepeatChicken
+      : entry.bonusType === "back_to_back"
+      ? scoringConfig.bonuses.backToBackChicken
+      : 0;
+    const goldenRoundBonus = payload.roundType === "golden"
+      ? (entry.nominatedPlayerKills ?? 0) * scoringConfig.goldenRounds.killPoint * (scoringConfig.goldenRounds.nominatedMultiplier - 1)
+      : 0;
+    const totalPoints = placementPoints + killPoints + bonusPoints + goldenRoundBonus;
+
+    return {
+      ...entry,
+      bonusType: entry.bonusType ?? "none",
+      nominatedPlayerKills: entry.nominatedPlayerKills ?? 0,
+      placementPoints,
+      killPoints,
+      bonusPoints,
+      goldenRoundBonus,
+      totalPoints
+    };
+  });
+
+  const winner = normalizedEntries.find((entry) => entry.placement === 1)?.teamId;
+  const existing = state.matchLogs.find((m) => m.matchNumber === payload.matchNumber);
+
+  const row: MatchLog = {
+    id: existing?.id ?? crypto.randomUUID(),
+    matchNumber: payload.matchNumber,
+    block: scheduleRef.block,
+    cycle: scheduleRef.cycle,
+    roundType: payload.roundType,
+    map: payload.map,
+    winnerTeamId: winner,
+    entries: normalizedEntries,
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now
+  };
+
+  state.matchLogs = [row, ...state.matchLogs.filter((m) => m.matchNumber !== payload.matchNumber)]
+    .sort((a, b) => a.matchNumber - b.matchNumber);
+
+  return { result: row };
 }
 
 export function getMatchResults() {
-  return state.results;
+  return state.matchLogs;
 }
 
 export function getStandings() {
@@ -213,31 +349,26 @@ export function getStandings() {
     byTeam[team.id] = {
       teamId: team.id,
       teamName: team.name,
+      matchesPlayed: 0,
       placementPoints: 0,
       killPoints: 0,
       bonusPoints: 0,
-      goldenModifierPoints: 0,
+      goldenRoundBonus: 0,
       totalPoints: 0
     };
   }
 
-  for (const result of state.results) {
-    const team = byTeam[result.teamId];
-    if (!team) continue;
-
-    const placementPoints = result.isGoldenRound
-      ? (result.placement === 1 ? scoringConfig.goldenRounds.placement.first : result.placement === 2 ? scoringConfig.goldenRounds.placement.second : scoringConfig.goldenRounds.placement.third)
-      : (result.placement === 1 ? scoringConfig.normalRounds.placement.first : result.placement === 2 ? scoringConfig.normalRounds.placement.second : scoringConfig.normalRounds.placement.third);
-
-    const killPoints = result.kills * scoringConfig.goldenRounds.killPoint;
-    const multiplierPoints = result.isGoldenRound ? (result.nominatedPlayerKills ?? 0) * scoringConfig.goldenRounds.killPoint : 0;
-    const bonusPoints = result.bonusType === "threepeat" ? scoringConfig.bonuses.threepeatChicken : result.bonusType === "back_to_back" ? scoringConfig.bonuses.backToBackChicken : 0;
-
-    team.placementPoints += placementPoints;
-    team.killPoints += killPoints;
-    team.goldenModifierPoints += multiplierPoints;
-    team.bonusPoints += bonusPoints;
-    team.totalPoints += placementPoints + killPoints + multiplierPoints + bonusPoints;
+  for (const log of state.matchLogs) {
+    for (const entry of log.entries) {
+      const team = byTeam[entry.teamId];
+      if (!team) continue;
+      team.matchesPlayed += 1;
+      team.placementPoints += entry.placementPoints;
+      team.killPoints += entry.killPoints;
+      team.bonusPoints += entry.bonusPoints;
+      team.goldenRoundBonus += entry.goldenRoundBonus;
+      team.totalPoints += entry.totalPoints;
+    }
   }
 
   return Object.values(byTeam).sort((a, b) => b.totalPoints - a.totalPoints);

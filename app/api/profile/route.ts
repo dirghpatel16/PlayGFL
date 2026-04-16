@@ -5,7 +5,7 @@ import { completionPercent } from "@/lib/profile/completion";
 import { getPayment } from "@/lib/server/state";
 import { seasonConfig } from "@/lib/config/season";
 
-const paymentLabel = (status: string) => status === "confirmed" ? "Payment Confirmed" : status === "submitted" ? "Payment Submitted" : "Unpaid";
+const paymentLabel = (status: string) => status === "confirmed" ? "Payment Confirmed" : status === "submitted" ? "Payment Submitted" : status === "rejected" ? "Rejected" : "Unpaid";
 
 export async function GET() {
   const authUser = await getSessionUser();

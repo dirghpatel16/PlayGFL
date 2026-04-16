@@ -30,7 +30,7 @@ export default function TournamentPage() {
         <article className="card p-5">
           <h2 className="text-xl font-bold">Match Format & Points</h2>
           <ul className="mt-3 space-y-1 text-sm text-white/80">
-            <li>• Normal rounds: {scoringConfig.normalRounds.gamesPerRound} games</li>
+            <li>• Season structure: 30 matches across 6 blocks (4/5/6 repeated twice)</li>
             <li>• 1st: {scoringConfig.normalRounds.placement.first} • 2nd: {scoringConfig.normalRounds.placement.second} • 3rd: {scoringConfig.normalRounds.placement.third}</li>
             <li>• Back-to-back chicken dinners: +{scoringConfig.bonuses.backToBackChicken}</li>
             <li>• Three back-to-back chicken dinners: +{scoringConfig.bonuses.threepeatChicken}</li>
@@ -63,7 +63,7 @@ export default function TournamentPage() {
       </section>
 
       <section>
-        <h2 className="section-title">Schedule Teaser</h2>
+        <h2 className="section-title">30-Match Season Schedule</h2>
         <div className="mt-3"><ScheduleCards /></div>
       </section>
     </div>
