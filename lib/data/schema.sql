@@ -112,16 +112,20 @@ create table if not exists public.team_players (
 
 create table if not exists public.payment_submissions (
   user_id uuid primary key references public.users(id) on delete cascade,
-  status text not null default 'unpaid' -- unpaid | submitted | confirmed,
+  status text not null default 'unpaid' -- unpaid | submitted | confirmed | rejected,
   utr text,
   payer_name text,
   screenshot_name text,
+  submitted_at timestamptz,
   updated_at timestamptz not null default now()
 );
 
 create table if not exists public.match_results (
   id uuid primary key default gen_random_uuid(),
   team_id text not null references public.teams(id) on delete cascade,
+  match_number int,
+  round_type text,
+  map text,
   placement int not null,
   kills int not null default 0,
   is_golden_round boolean not null default false,
@@ -131,6 +135,7 @@ create table if not exists public.match_results (
   kill_points int not null default 0,
   bonus_points int not null default 0,
   golden_modifier_points int not null default 0,
+  golden_round_bonus int not null default 0,
   total_points int not null default 0,
   created_at timestamptz not null default now()
 );

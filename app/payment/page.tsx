@@ -6,34 +6,66 @@ import { fetchJSON } from "@/lib/services/http";
 import { seasonConfig } from "@/lib/config/season";
 
 interface PaymentPayload {
-  status: "unpaid" | "submitted" | "confirmed";
+  status: "unpaid" | "submitted" | "confirmed" | "rejected";
   label?: string;
+  utr?: string;
+  updatedAt?: string;
 }
 
 export default function PaymentPage() {
   const [payment, setPayment] = useState<PaymentPayload>({ status: "unpaid", label: "Unpaid" });
   const [message, setMessage] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const load = () => fetchJSON<{ payment: PaymentPayload }>("/api/payment").then((d) => setPayment(d.payment ?? { status: "unpaid", label: "Unpaid" })).catch(() => null);
+  const load = () =>
+    fetchJSON<{ payment: PaymentPayload }>("/api/payment")
+      .then((d) => setPayment(d.payment ?? { status: "unpaid", label: "Unpaid" }))
+      .catch(() => null);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setMessage("");
+
     const fd = new FormData(e.currentTarget);
-    await fetchJSON("/api/payment", {
-      method: "POST",
-      body: JSON.stringify({
-        payerName: fd.get("payerName"),
-        utr: fd.get("utr"),
-        screenshotName: (fd.get("screenshot") as File)?.name || undefined
-      })
-    });
-    setMessage("Payment Submitted. We will verify shortly.");
-    e.currentTarget.reset();
-    setShowForm(false);
-    load();
+    const screenshot = fd.get("screenshot") as File;
+    if (!screenshot || !screenshot.name) {
+      setMessage("Screenshot proof is required.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const screenshotDataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = reject;
+        reader.readAsDataURL(screenshot);
+      });
+
+      await fetchJSON("/api/payment", {
+        method: "POST",
+        body: JSON.stringify({
+          payerName: fd.get("payerName"),
+          utr: fd.get("utr"),
+          screenshotName: screenshot.name,
+          screenshotDataUrl
+        })
+      });
+
+      setMessage("Payment submitted for verification. Your registration will be confirmed after payment verification.");
+      e.currentTarget.reset();
+      setShowForm(false);
+      load();
+    } catch (error: any) {
+      setMessage(error?.message || "Unable to submit payment right now.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -58,19 +90,21 @@ export default function PaymentPage() {
           <ol className="mt-3 space-y-1 text-xs text-white/65">
             <li>1) Open any UPI app and scan the QR code.</li>
             <li>2) Pay exactly ₹{seasonConfig.entryFee}.</li>
-            <li>3) Tap <strong>I Have Paid</strong> and submit payer name + UTR.</li>
+            <li>3) Submit payer name + UTR + screenshot proof.</li>
+            <li>4) Wait for commissioner verification.</li>
           </ol>
-          <button className="cta-primary mt-4" onClick={() => setShowForm((v) => !v)}>{showForm ? "Hide Form" : "I Have Paid"}</button>
+          <button className="cta-primary mt-4" onClick={() => setShowForm((v) => !v)}>{showForm ? "Hide Form" : "Submit Payment Proof"}</button>
         </div>
 
         <div className="space-y-3">
           <p className="text-sm">Current Status: <span className="font-semibold">{payment.label ?? "Unpaid"}</span></p>
+          <p className="text-xs text-white/65">Awaiting Verification: manual QR submissions are reviewed by commissioner staff.</p>
           {showForm && (
             <form onSubmit={submit} className="space-y-3 border border-white/10 p-3 rounded-xl">
               <input required name="payerName" placeholder="Payer Name" className="w-full rounded bg-white/5 p-3" />
               <input required name="utr" placeholder="UTR / Transaction Reference" className="w-full rounded bg-white/5 p-3" />
-              <input name="screenshot" type="file" accept="image/*" className="w-full rounded bg-white/5 p-3" />
-              <button className="cta-primary w-full">Submit Payment</button>
+              <input required name="screenshot" type="file" accept="image/*" className="w-full rounded bg-white/5 p-3" />
+              <button disabled={submitting} className="cta-primary w-full disabled:opacity-60">{submitting ? "Submitting..." : "Submit Payment"}</button>
             </form>
           )}
           {message && <p className="text-sm text-neon">{message}</p>}

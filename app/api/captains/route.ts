@@ -14,7 +14,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const blocked = requireCommissionerRequest(req);
+  const blocked = requireCommissionerRequest(req, "owner");
   if (blocked) return blocked;
 
   const body = await parseJSON(req);
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
 
 
 export async function DELETE(req: NextRequest) {
-  const blocked = requireCommissionerRequest(req);
+  const blocked = requireCommissionerRequest(req, "owner");
   if (blocked) return blocked;
 
   const body = await parseJSON(req);
@@ -61,7 +61,7 @@ export async function DELETE(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const blocked = requireCommissionerRequest(req);
+  const blocked = requireCommissionerRequest(req, "owner");
   if (blocked) return blocked;
 
   const body = await parseJSON(req);

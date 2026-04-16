@@ -5,11 +5,11 @@ export const COMMISSIONER_COOKIE = "gfl_commissioner";
 export type CommissionerRole = "owner" | "staff";
 
 function getOwnerPasscode() {
-  return process.env.OWNER_PASSCODE || process.env.COMMISSIONER_PASSCODE || "";
+  return process.env.OWNER_COMMISSIONER_CODE || process.env.OWNER_PASSCODE || process.env.COMMISSIONER_PASSCODE || "";
 }
 
 function getStaffPasscode() {
-  return process.env.STAFF_PASSCODE || "";
+  return process.env.STAFF_COMMISSIONER_CODE || process.env.STAFF_PASSCODE || "";
 }
 
 export function validateCommissionerPasscode(role: CommissionerRole, code: string) {
