@@ -1,34 +1,46 @@
 "use client";
 
-import { ProfileEditor } from "@/components/profile/ProfileEditor";
-import { getMockUser } from "@/lib/services/auth";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { fetchJSON } from "@/lib/services/http";
+
+interface DashboardPayload {
+  paymentStatus: "unpaid" | "submitted" | "confirmed" | "rejected";
+  paymentLabel?: string;
+  registrationStatus: "Not Registered" | "Registered for PlayGFL Season 2";
+  entryFee: number;
+}
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<ReturnType<typeof getMockUser>>(null);
+  const [data, setData] = useState<DashboardPayload | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => setUser(getMockUser()), []);
+  useEffect(() => {
+    fetchJSON<DashboardPayload>("/api/profile").then(setData).catch((err) => setError(err.message));
+  }, []);
 
-  if (!user) {
-    return (
-      <div className="py-10">
-        <div className="card p-6">
-          <p>Please login to view dashboard.</p>
-          <Link href="/auth/login" className="mt-4 inline-block rounded-lg bg-accent px-3 py-2">Go to Login</Link>
-        </div>
-      </div>
-    );
-  }
+  if (error) return <div className="py-10"><div className="card p-6">{error}</div></div>;
+  if (!data) return <div className="py-10"><div className="card p-6">Loading dashboard...</div></div>;
 
   return (
-    <div className="py-8 space-y-4">
-      <section className="card p-5">
-        <h1 className="text-2xl font-bold">Welcome, {user.username}</h1>
-        {!user.emailVerified && <p className="mt-2 text-sm text-danger">Verify email to unlock league actions.</p>}
-        <p className="mt-2 text-sm text-white/70">Profile completion: 55% (mock). Finish setup to appear in scouting and auction rankings.</p>
+    <div className="py-8">
+      <section className="card p-5 space-y-4">
+        <h1 className="text-2xl font-bold">My PlayGFL Season 2 Status</h1>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="border border-white/15 bg-white/[0.02] p-4 text-sm">
+            <p><strong>Entry Fee:</strong> ₹{data.entryFee}</p>
+            <p><strong>Payment Status:</strong> {data.paymentLabel ?? "Unpaid"}</p>
+            <p><strong>Registration Status:</strong> {data.registrationStatus}</p>
+          </div>
+          <div className="border border-white/15 bg-white/[0.02] p-4 text-sm">
+            <p>Pay ₹{data.entryFee} using QR, submit UTR, then wait for confirmation.</p>
+            {data.paymentStatus === "unpaid" && <Link href="/payment" className="cta-primary mt-3">Go to Payment Page</Link>}
+            {data.paymentStatus === "submitted" && <p className="mt-3 text-neon">Payment Submitted. Verification pending.</p>}
+            {data.paymentStatus === "confirmed" && <p className="mt-3 text-neon">Payment Confirmed. You are registered for PlayGFL Season 2.</p>}
+            {data.paymentStatus === "rejected" && <p className="mt-3 text-danger">Payment was rejected. Please re-submit valid payment proof.</p>}
+          </div>
+        </div>
       </section>
-      <ProfileEditor />
     </div>
   );
 }

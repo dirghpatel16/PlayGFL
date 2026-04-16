@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { HeroSection } from "@/components/home/HeroSection";
 import { HighlightsStrip } from "@/components/home/HighlightsStrip";
-import { CountdownTimer } from "@/components/shared/CountdownTimer";
 import { AnnouncementTicker } from "@/components/shared/AnnouncementTicker";
-import { AIHostPanel } from "@/components/shared/AIHostPanel";
 import { fetchJSON } from "@/lib/services/http";
 import { Tournament, Captain, Announcement } from "@/lib/types/models";
+import { scoringConfig, seasonConfig } from "@/lib/config/season";
 
 interface PublicPayload {
   tournament: Tournament;
@@ -24,51 +24,39 @@ export default function HomePage() {
 
   return (
     <>
-      <HeroSection />
+      <HeroSection tournament={data?.tournament} />
       <AnnouncementTicker announcements={data?.announcements ?? []} />
-      {data?.tournament && (
-        <section className="mt-6 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-          <CountdownTimer launchISO={data.tournament.launchAtIST} startISO={data.tournament.startsAtIST} />
-          <article className="card p-5">
-            <p className="text-xs uppercase tracking-widest text-neon">Upcoming tournament</p>
-            <h3 className="mt-2 text-2xl font-bold">{data.tournament.name}</h3>
-            <p className="mt-2 text-sm text-white/75">Format: {data.tournament.format}</p>
-            <p className="text-sm text-white/75">Prize pool: ₹{data.tournament.prizePoolINR.toLocaleString("en-IN")}</p>
-          </article>
-        </section>
-      )}
       <HighlightsStrip />
 
-      <section className="mt-10">
-        <h2 className="section-title">How it works</h2>
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          {["Register + verify email", "Complete profile & get approved", "Enter captain auction draft"].map((s, i) => (
-            <div key={s} className="card p-4">
-              <p className="text-neon">0{i + 1}</p>
-              <p className="mt-1 font-semibold">{s}</p>
-            </div>
-          ))}
-        </div>
+      <section className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <Link href="/auth/signup" className="card p-4 hover:border-neon">Register</Link>
+        <Link href="/payment" className="card p-4 hover:border-neon">Pay Entry Fee ₹{seasonConfig.entryFee}</Link>
+        <Link href="/tournament" className="card p-4 hover:border-neon">View Tournament</Link>
+        <Link href="/auction" className="card p-4 hover:border-neon">View Auction</Link>
       </section>
 
-      <section className="mt-10">
-        <h2 className="section-title">Captains</h2>
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          {data?.captains?.length ? (
-            data.captains.map((c) => (
-              <article key={c.id} className="card p-4">
-                <p className="text-xs text-neon">{c.tag}</p>
-                <h3 className="mt-1 text-xl font-bold">Captain {c.name}</h3>
-                <p className="text-sm text-white/70">Region: {c.region}</p>
-              </article>
-            ))
-          ) : (
-            <p className="text-sm text-white/70">No captains added yet. Admin can add captains from the Admin panel.</p>
-          )}
-        </div>
-      </section>
+      <section className="mt-12 grid gap-6 lg:grid-cols-2">
+        <article className="card p-5">
+          <p className="eyebrow">Match Format Overview</p>
+          <h2 className="section-title mt-2">Season 2 Rules Snapshot</h2>
+          <ul className="mt-4 space-y-2 text-sm text-white/80">
+            <li>• Normal rounds: {scoringConfig.normalRounds.gamesPerRound} games each.</li>
+            <li>• Placement: 1st {scoringConfig.normalRounds.placement.first}, 2nd {scoringConfig.normalRounds.placement.second}, 3rd {scoringConfig.normalRounds.placement.third}.</li>
+            <li>• Bonus: back-to-back +{scoringConfig.bonuses.backToBackChicken}, threepeat +{scoringConfig.bonuses.threepeatChicken}.</li>
+            <li>• Golden rounds on {scoringConfig.goldenRounds.map} with nominated player x{scoringConfig.goldenRounds.nominatedMultiplier}.</li>
+          </ul>
+        </article>
 
-      <AIHostPanel dynamicLine="Welcome to GFL. The battleground is almost ready." />
+        <article className="event-panel">
+          <p className="eyebrow">Community</p>
+          <h3 className="mt-2 text-2xl font-black uppercase">Join PlayGFL Community</h3>
+          <p className="mt-3 text-sm text-white/75">Follow updates, scrim calls, and live season alerts.</p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <a href="https://discord.gg/XzgMJMK3" target="_blank" rel="noopener noreferrer" className="cta-primary focus:outline-none focus:ring-2 focus:ring-neon">Discord</a>
+            <a href="https://www.instagram.com/playgfl?igsh=dGppa2tkenVoaDV3" target="_blank" rel="noopener noreferrer" className="cta-ghost focus:outline-none focus:ring-2 focus:ring-neon">Instagram</a>
+          </div>
+        </article>
+      </section>
     </>
   );
 }

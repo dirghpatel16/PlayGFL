@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="900" viewBox="0 0 900 900">
+  <rect width="900" height="900" fill="#0b0f14"/>
+  <rect x="70" y="70" width="760" height="760" fill="#10131a" stroke="#22d3ee" stroke-width="14" rx="24"/>
+  <text x="450" y="430" fill="#e5e7eb" font-size="44" text-anchor="middle" font-family="Arial, sans-serif">Add provided QR image</text>
+  <text x="450" y="490" fill="#9ca3af" font-size="28" text-anchor="middle" font-family="Arial, sans-serif">Replace public/payment-qr.svg with real QR</text>
+</svg>

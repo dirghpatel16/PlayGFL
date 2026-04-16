@@ -1,7 +1,7 @@
 export type UserRole = "player" | "captain" | "admin";
 export type ExperienceLevel = "Beginner" | "Intermediate" | "Semi-Pro" | "Pro";
 export type PreferredRole = "Assaulter" | "Support" | "IGL" | "Sniper" | "Flexible";
-export type AuctionState = "waiting" | "player_reveal" | "selection" | "sold" | "complete";
+export type AuctionState = "waiting_draw" | "drawing" | "player_revealed" | "in_auction" | "auction_complete_for_player" | "complete";
 
 export interface User {
   id: string;

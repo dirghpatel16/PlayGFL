@@ -6,7 +6,7 @@ export function AnnouncementTicker({ announcements }: { announcements: Announcem
   if (!announcements.length) {
     return (
       <div className="card mt-6 py-3 px-4 text-sm text-white/70">
-        No announcements yet. Admin posts will appear here live.
+        No announcements yet. Commissioner updates will appear here live.
       </div>
     );
   }

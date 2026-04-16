@@ -8,18 +8,74 @@
 
 body {
   @apply bg-bg text-white antialiased;
-  background-image: radial-gradient(circle at 20% 0%, rgba(109, 92, 255, 0.2), transparent 40%),
-    radial-gradient(circle at 80% 0%, rgba(45, 226, 230, 0.12), transparent 35%);
+  background: radial-gradient(circle at 82% -10%, rgba(30, 255, 111, 0.12), transparent 42%), #050505;
 }
 
 .card {
-  @apply rounded-2xl border border-white/10 bg-card/80 backdrop-blur;
+  @apply border border-white/10 bg-white/[0.03];
 }
 
 .section-title {
-  @apply text-2xl font-bold tracking-tight sm:text-3xl;
+  @apply text-3xl font-black uppercase tracking-wide sm:text-4xl;
 }
 
 .container-gfl {
   @apply mx-auto w-full max-w-6xl px-4;
+}
+
+.eyebrow {
+  @apply text-[11px] uppercase tracking-[0.24em] text-neon;
+}
+
+.hero-shell {
+  @apply border border-white/15 bg-gradient-to-b from-white/[0.03] to-transparent;
+}
+
+.hero-title {
+  @apply text-4xl font-black uppercase leading-[0.95] tracking-[0.02em] sm:text-6xl lg:text-7xl;
+}
+
+.countdown-shell {
+  @apply border border-white/15 bg-black/40 p-4 sm:p-5;
+}
+
+.countdown-grid {
+  @apply grid grid-cols-4 gap-3 border-y border-white/10 py-4;
+}
+
+.countdown-digit {
+  @apply text-3xl font-black tracking-tight text-white sm:text-5xl;
+}
+
+.countdown-label {
+  @apply mt-1 text-[10px] uppercase tracking-[0.22em] text-white/55;
+}
+
+.cta-primary {
+  @apply inline-flex items-center justify-center border border-neon bg-neon px-5 py-3 text-sm font-bold uppercase tracking-[0.14em] text-black transition hover:brightness-110;
+}
+
+.cta-ghost {
+  @apply inline-flex items-center justify-center border border-white/30 px-5 py-3 text-sm font-bold uppercase tracking-[0.14em] text-white transition hover:border-white;
+}
+
+.event-panel {
+  @apply border border-white/15 bg-white/[0.02] p-5 sm:p-6;
+}
+
+.meta-row {
+  @apply flex items-center justify-between gap-4 border-b border-white/10 pb-3 text-[11px] uppercase tracking-[0.18em] text-white/70 last:border-b-0 last:pb-0;
+}
+
+.meta-row strong {
+  @apply text-sm font-bold tracking-[0.06em] text-white;
+}
+
+
+.launch-lockscreen {
+  background: radial-gradient(circle at 20% -10%, rgba(30, 255, 111, 0.12), transparent 34%), radial-gradient(circle at 82% 0%, rgba(255, 255, 255, 0.08), transparent 30%), #040404;
+}
+
+.launch-timer p {
+  font-variant-numeric: tabular-nums;
 }
