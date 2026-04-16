@@ -35,6 +35,13 @@ interface ResultRowInput {
   nominatedPlayerKills: number;
 }
 
+interface ExistingMatchLedger {
+  matchNumber: number;
+  roundType: "normal" | "golden";
+  map: string;
+  entries: ResultRowInput[];
+}
+
 export function CommissionerPanel() {
   const [enabled, setEnabled] = useState(false);
   const [role, setRole] = useState<Role>("staff");
@@ -46,7 +53,10 @@ export function CommissionerPanel() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [search, setSearch] = useState("");
   const [matchNumber, setMatchNumber] = useState(1);
+  const [roundType, setRoundType] = useState<"normal" | "golden">("normal");
+  const [mapName, setMapName] = useState("");
   const [resultRows, setResultRows] = useState<ResultRowInput[]>([]);
+  const [matchLedger, setMatchLedger] = useState<ExistingMatchLedger[]>([]);
 
   const isOwner = enabled && role === "owner";
   const selectedMatch = seasonMatchPlan.find((m) => m.matchNumber === matchNumber);
@@ -75,12 +85,37 @@ export function CommissionerPanel() {
   }, []);
 
   useEffect(() => {
-    setResultRows(teams.map((team) => ({ teamId: team.id, placement: 1, kills: 0, bonusType: "none", nominatedPlayerKills: 0 })));
+    setResultRows(teams.map((team, index) => ({ teamId: team.id, placement: index + 1, kills: 0, bonusType: "none", nominatedPlayerKills: 0 })));
   }, [teams]);
 
   useEffect(() => {
     loadPayments();
   }, [enabled, search]);
+
+  useEffect(() => {
+    fetchJSON<{ matchLedger: ExistingMatchLedger[] }>("/api/standings")
+      .then((d) => setMatchLedger(d.matchLedger ?? []))
+      .catch(() => setMatchLedger([]));
+  }, [enabled]);
+
+  useEffect(() => {
+    const existing = matchLedger.find((entry) => entry.matchNumber === matchNumber);
+    if (existing) {
+      setRoundType(existing.roundType);
+      setMapName(existing.map);
+      setResultRows(teams.map((team, index) => {
+        const row = existing.entries.find((entry) => entry.teamId === team.id);
+        return row ?? { teamId: team.id, placement: index + 1, kills: 0, bonusType: "none", nominatedPlayerKills: 0 };
+      }));
+      return;
+    }
+
+    if (selectedMatch) {
+      setRoundType(selectedMatch.roundType);
+      setMapName(selectedMatch.map);
+    }
+    setResultRows(teams.map((team, index) => ({ teamId: team.id, placement: index + 1, kills: 0, bonusType: "none", nominatedPlayerKills: 0 })));
+  }, [matchNumber, selectedMatch, teams, matchLedger]);
 
   const unlock = async (e: FormEvent) => {
     e.preventDefault();
@@ -116,12 +151,12 @@ export function CommissionerPanel() {
       method: "POST",
       body: JSON.stringify({
         matchNumber,
-        roundType: selectedMatch.roundType,
-        map: selectedMatch.map,
+        roundType,
+        map: mapName || selectedMatch?.map || "Unknown",
         entries: resultRows
       })
     });
-    setMessage(`Saved Match ${matchNumber} (${selectedMatch.roundType.toUpperCase()}) and updated standings.`);
+    setMessage(`Saved Match ${matchNumber} (${roundType.toUpperCase()}) and updated standings.`);
   };
 
   const ownerCapabilities = useMemo(() => [
@@ -200,7 +235,13 @@ export function CommissionerPanel() {
           <select value={matchNumber} onChange={(e) => setMatchNumber(Number(e.target.value))} className="w-full rounded bg-white/5 p-2">
             {seasonMatchPlan.map((m) => <option key={m.matchNumber} value={m.matchNumber}>Match {m.matchNumber} • Block {m.block} • {m.roundType === "golden" ? "Golden" : "Normal"}</option>)}
           </select>
-          <p className="text-xs text-white/70">Map: {selectedMatch?.map}</p>
+          <div className="grid grid-cols-2 gap-2">
+            <select value={roundType} onChange={(e) => setRoundType(e.target.value as "normal" | "golden")} className="rounded bg-white/5 p-2 text-xs">
+              <option value="normal">Normal</option>
+              <option value="golden">Golden</option>
+            </select>
+            <input value={mapName} onChange={(e) => setMapName(e.target.value)} className="rounded bg-white/5 p-2 text-xs" placeholder="Map" />
+          </div>
           <div className="space-y-2 max-h-64 overflow-auto">
             {resultRows.map((row) => (
               <div key={row.teamId} className="rounded border border-white/10 p-2 grid grid-cols-2 gap-2 text-xs">
@@ -210,7 +251,7 @@ export function CommissionerPanel() {
                 <select value={row.bonusType} onChange={(e) => updateResultRow(row.teamId, { bonusType: e.target.value as BonusType })} className="rounded bg-white/5 p-2">
                   <option value="none">No bonus</option><option value="back_to_back">Back-to-back</option><option value="threepeat">Three back-to-back</option>
                 </select>
-                <input type="number" min={0} value={row.nominatedPlayerKills} onChange={(e) => updateResultRow(row.teamId, { nominatedPlayerKills: Number(e.target.value) })} className="rounded bg-white/5 p-2" placeholder="Nominated x2 kills" disabled={selectedMatch?.roundType !== "golden"} />
+                <input type="number" min={0} value={row.nominatedPlayerKills} onChange={(e) => updateResultRow(row.teamId, { nominatedPlayerKills: Number(e.target.value) })} className="rounded bg-white/5 p-2" placeholder="Nominated x2 kills" disabled={roundType !== "golden"} />
               </div>
             ))}
           </div>

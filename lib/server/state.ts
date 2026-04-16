@@ -58,11 +58,38 @@ export interface TeamStanding {
   teamId: string;
   teamName: string;
   matchesPlayed: number;
+  chickenDinners: number;
   placementPoints: number;
   killPoints: number;
   bonusPoints: number;
   goldenRoundBonus: number;
   totalPoints: number;
+}
+
+export interface MatchLedgerEntry extends TeamMatchResult {
+  teamName: string;
+  runningTotal: number;
+}
+
+export interface MatchLedgerRow {
+  matchNumber: number;
+  roundType: RoundType;
+  map: string;
+  block: number;
+  cycle: 1 | 2;
+  winnerTeamId?: string;
+  winnerTeamName?: string;
+  entries: MatchLedgerEntry[];
+}
+
+export interface PointsBreakdownRow {
+  teamId: string;
+  teamName: string;
+  normalMatches: number;
+  goldenMatches: number;
+  normalPoints: number;
+  goldenPoints: number;
+  averagePerMatch: number;
 }
 
 interface RuntimeUser extends User {
@@ -350,6 +377,7 @@ export function getStandings() {
       teamId: team.id,
       teamName: team.name,
       matchesPlayed: 0,
+      chickenDinners: 0,
       placementPoints: 0,
       killPoints: 0,
       bonusPoints: 0,
@@ -363,6 +391,7 @@ export function getStandings() {
       const team = byTeam[entry.teamId];
       if (!team) continue;
       team.matchesPlayed += 1;
+      if (entry.placement === 1) team.chickenDinners += 1;
       team.placementPoints += entry.placementPoints;
       team.killPoints += entry.killPoints;
       team.bonusPoints += entry.bonusPoints;
@@ -372,6 +401,75 @@ export function getStandings() {
   }
 
   return Object.values(byTeam).sort((a, b) => b.totalPoints - a.totalPoints);
+}
+
+export function getMatchLedger(): MatchLedgerRow[] {
+  const teamById = Object.fromEntries(state.teams.map((team) => [team.id, team.name]));
+  const runningTotals: Record<string, number> = {};
+  for (const team of state.teams) runningTotals[team.id] = 0;
+
+  return state.matchLogs
+    .slice()
+    .sort((a, b) => a.matchNumber - b.matchNumber)
+    .map((log) => {
+      const entries = log.entries
+        .map((entry) => {
+          runningTotals[entry.teamId] = (runningTotals[entry.teamId] ?? 0) + entry.totalPoints;
+          return {
+            ...entry,
+            teamName: teamById[entry.teamId] ?? entry.teamId,
+            runningTotal: runningTotals[entry.teamId]
+          };
+        })
+        .sort((a, b) => a.placement - b.placement);
+
+      return {
+        matchNumber: log.matchNumber,
+        roundType: log.roundType,
+        map: log.map,
+        block: log.block,
+        cycle: log.cycle,
+        winnerTeamId: log.winnerTeamId,
+        winnerTeamName: log.winnerTeamId ? teamById[log.winnerTeamId] : undefined,
+        entries
+      };
+    });
+}
+
+export function getPointsBreakdown(): PointsBreakdownRow[] {
+  const breakdown: Record<string, PointsBreakdownRow> = {};
+  for (const team of state.teams) {
+    breakdown[team.id] = {
+      teamId: team.id,
+      teamName: team.name,
+      normalMatches: 0,
+      goldenMatches: 0,
+      normalPoints: 0,
+      goldenPoints: 0,
+      averagePerMatch: 0
+    };
+  }
+
+  for (const log of state.matchLogs) {
+    for (const entry of log.entries) {
+      const row = breakdown[entry.teamId];
+      if (!row) continue;
+      if (log.roundType === "golden") {
+        row.goldenMatches += 1;
+        row.goldenPoints += entry.totalPoints;
+      } else {
+        row.normalMatches += 1;
+        row.normalPoints += entry.totalPoints;
+      }
+    }
+  }
+
+  return Object.values(breakdown)
+    .map((row) => {
+      const matches = row.normalMatches + row.goldenMatches;
+      return { ...row, averagePerMatch: matches ? Number(((row.normalPoints + row.goldenPoints) / matches).toFixed(2)) : 0 };
+    })
+    .sort((a, b) => (b.normalPoints + b.goldenPoints) - (a.normalPoints + a.goldenPoints));
 }
 
 export function signupUser(username: string, email: string, password: string) {

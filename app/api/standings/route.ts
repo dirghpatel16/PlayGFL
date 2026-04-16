@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
 import { isSupabaseConfigured, supabaseAdminTable } from "@/lib/supabase/rest";
-import { getMatchResults, getStandings } from "@/lib/server/state";
+import { getMatchLedger, getPointsBreakdown, getStandings } from "@/lib/server/state";
 import { scoringConfig } from "@/lib/config/season";
 import { seasonMatchPlan } from "@/lib/config/matchFormat";
 
 export async function GET() {
   if (!isSupabaseConfigured()) {
-    return NextResponse.json({ standings: getStandings(), matchLogs: getMatchResults(), seasonMatchPlan, scoringConfig });
+    return NextResponse.json({
+      standings: getStandings(),
+      matchLedger: getMatchLedger(),
+      pointsBreakdown: getPointsBreakdown(),
+      seasonMatchPlan,
+      scoringConfig
+    });
   }
 
   const teams = await supabaseAdminTable<any[]>("teams?select=id,name");
@@ -18,6 +24,7 @@ export async function GET() {
       teamId: team.id,
       teamName: team.name,
       matchesPlayed: 0,
+      chickenDinners: 0,
       placementPoints: 0,
       killPoints: 0,
       bonusPoints: 0,
@@ -30,6 +37,7 @@ export async function GET() {
     const t = aggregate[row.team_id];
     if (!t) continue;
     t.matchesPlayed += 1;
+    if (Number(row.placement) === 1) t.chickenDinners += 1;
     t.placementPoints += Number(row.placement_points ?? 0);
     t.killPoints += Number(row.kill_points ?? 0);
     t.bonusPoints += Number(row.bonus_points ?? 0);
@@ -39,7 +47,8 @@ export async function GET() {
 
   return NextResponse.json({
     standings: Object.values(aggregate).sort((a: any, b: any) => b.totalPoints - a.totalPoints),
-    matchLogs: [],
+    matchLedger: [],
+    pointsBreakdown: [],
     seasonMatchPlan,
     scoringConfig
   });
