@@ -47,7 +47,7 @@ interface RuntimeState {
   announcements: Announcement[];
   auction: AuctionRuntime;
   users: RuntimeUser[];
-  payments: Record<string, { status: "unpaid" | "submitted" | "verified"; utr?: string; payerName?: string; screenshotName?: string; updatedAt: string }>;
+  payments: Record<string, { status: "unpaid" | "submitted" | "confirmed"; utr?: string; payerName?: string; screenshotName?: string; updatedAt: string }>;
   results: MatchResult[];
 }
 
@@ -164,7 +164,7 @@ export function setPayment(userId: string, details: { utr: string; payerName: st
 
 export function verifyPayment(userId: string) {
   const existing = state.payments[userId];
-  state.payments[userId] = { ...(existing ?? { updatedAt: new Date().toISOString() }), status: "verified", updatedAt: new Date().toISOString() };
+  state.payments[userId] = { ...(existing ?? { updatedAt: new Date().toISOString() }), status: "confirmed", updatedAt: new Date().toISOString() };
   return state.payments[userId];
 }
 

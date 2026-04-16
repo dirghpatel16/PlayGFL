@@ -112,7 +112,7 @@ create table if not exists public.team_players (
 
 create table if not exists public.payment_submissions (
   user_id uuid primary key references public.users(id) on delete cascade,
-  status text not null default 'unpaid',
+  status text not null default 'unpaid' -- unpaid | submitted | confirmed,
   utr text,
   payer_name text,
   screenshot_name text,

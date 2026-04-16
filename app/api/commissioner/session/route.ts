@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { asNonEmptyString, badRequest, parseJSON } from "@/lib/server/auth";
-import { COMMISSIONER_COOKIE, isCommissionerPasscodeValid } from "@/lib/auth/commissioner";
+import { COMMISSIONER_COOKIE, CommissionerRole, validateCommissionerPasscode } from "@/lib/auth/commissioner";
 
 export async function GET(req: NextRequest) {
-  const enabled = req.cookies.get(COMMISSIONER_COOKIE)?.value === "1";
-  return NextResponse.json({ enabled });
+  const role = req.cookies.get(COMMISSIONER_COOKIE)?.value;
+  const enabled = role === "owner" || role === "staff";
+  return NextResponse.json({ enabled, role: enabled ? role : null });
 }
 
 export async function POST(req: NextRequest) {
@@ -12,13 +13,15 @@ export async function POST(req: NextRequest) {
   if (!body) return badRequest("Invalid JSON body");
 
   const passcode = asNonEmptyString(body.passcode);
+  const role = (asNonEmptyString(body.role) ?? "staff") as CommissionerRole;
   if (!passcode) return badRequest("passcode is required");
-  if (!isCommissionerPasscodeValid(passcode)) {
+  if (!role || !["owner", "staff"].includes(role)) return badRequest("role must be owner or staff");
+  if (!validateCommissionerPasscode(role, passcode)) {
     return NextResponse.json({ error: "Invalid passcode" }, { status: 401 });
   }
 
-  const res = NextResponse.json({ ok: true, enabled: true });
-  res.cookies.set(COMMISSIONER_COOKIE, "1", {
+  const res = NextResponse.json({ ok: true, enabled: true, role });
+  res.cookies.set(COMMISSIONER_COOKIE, role, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",

@@ -11,7 +11,7 @@ export async function POST() {
   const paymentRows = await supabaseAdminTable<any[]>(`payment_submissions?user_id=eq.${authUser.id}&select=status&limit=1`).catch(() => []);
   const completion = rows[0]?.completion_percent ?? 0;
   if (completion < 100) return NextResponse.json({ error: "Complete profile before registering for trials" }, { status: 400 });
-  if ((paymentRows[0]?.status ?? "unpaid") !== "verified") return NextResponse.json({ error: "Entry fee payment must be verified before trials registration" }, { status: 400 });
+  if ((paymentRows[0]?.status ?? "unpaid") !== "confirmed") return NextResponse.json({ error: "Entry fee payment must be confirmed before trials registration" }, { status: 400 });
 
   await supabaseAdminTable(`player_profiles?user_id=eq.${authUser.id}`, {
     method: "PATCH",
