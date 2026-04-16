@@ -51,7 +51,7 @@ export default function PlayersPage() {
 
       {!players.length && (
         <div className="card p-4 text-sm text-white/70">
-          Admin note: use the <Link href="/admin" className="text-neon underline">admin center</Link> to approve players and move eligible players into the auction pool.
+          Admin note: use the <Link href="/admin" className="text-neon underline">commissioner console</Link> to manage the live player list, captains, and auction pool.
         </div>
       )}
     </section>

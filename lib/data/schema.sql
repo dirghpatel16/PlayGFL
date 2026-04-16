@@ -109,6 +109,32 @@ create table if not exists public.team_players (
   primary key (team_id, player_id)
 );
 
+
+create table if not exists public.payment_submissions (
+  user_id uuid primary key references public.users(id) on delete cascade,
+  status text not null default 'unpaid',
+  utr text,
+  payer_name text,
+  screenshot_name text,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.match_results (
+  id uuid primary key default gen_random_uuid(),
+  team_id text not null references public.teams(id) on delete cascade,
+  placement int not null,
+  kills int not null default 0,
+  is_golden_round boolean not null default false,
+  nominated_player_kills int not null default 0,
+  bonus_type text not null default 'none',
+  placement_points int not null default 0,
+  kill_points int not null default 0,
+  bonus_points int not null default 0,
+  golden_modifier_points int not null default 0,
+  total_points int not null default 0,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.announcements (
   id text primary key,
   title text not null,
@@ -128,6 +154,8 @@ alter table public.team_players enable row level security;
 alter table public.announcements enable row level security;
 alter table public.captains enable row level security;
 alter table public.tournaments enable row level security;
+alter table public.payment_submissions enable row level security;
+alter table public.match_results enable row level security;
 
 create policy "users can read users" on public.users for select using (true);
 create policy "users can update own profile" on public.player_profiles for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
@@ -140,10 +168,13 @@ create policy "public read team_players" on public.team_players for select using
 create policy "public read announcements" on public.announcements for select using (true);
 create policy "public read captains" on public.captains for select using (true);
 create policy "public read tournaments" on public.tournaments for select using (true);
+create policy "users read own payment" on public.payment_submissions for select using (auth.uid() = user_id);
+create policy "users create own payment" on public.payment_submissions for insert with check (auth.uid() = user_id);
+create policy "public read match results" on public.match_results for select using (true);
 
 -- Seed tournament + captains + teams + auction pool
 insert into public.tournaments (id, name, timezone, launch_at, starts_at, registration_open, prize_pool_inr, format)
-values ('gfl-s1', 'PlayGFL Season 2', 'Asia/Kolkata', '2026-04-15T19:00:00+05:30', '2026-04-18T21:00:00+05:30', true, 50000, '3 captains draft auction players')
+values ('gfl-s1', 'PlayGFL Season 2', 'Asia/Kolkata', '2026-04-15T19:00:00+05:30', '2026-04-18T21:00:00+05:30', true, 150, '3 captains draft auction players')
 on conflict (id) do nothing;
 
 insert into public.captains (id, name, tag, region, purse_points)

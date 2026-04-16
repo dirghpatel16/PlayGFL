@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { supabaseAdminTable } from "@/lib/supabase/rest";
 import { completionPercent } from "@/lib/profile/completion";
+import { getPayment } from "@/lib/server/state";
 
 export async function GET() {
   const authUser = await getSessionUser();
   if (!authUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const rows = await supabaseAdminTable<any[]>(`player_profiles?user_id=eq.${authUser.id}&select=*`);
+  const userRows = await supabaseAdminTable<any[]>(`users?id=eq.${authUser.id}&select=username,email&limit=1`).catch(() => []);
+  const paymentRows = await supabaseAdminTable<any[]>(`payment_submissions?user_id=eq.${authUser.id}&select=status&limit=1`).catch(() => []);
   if (!rows.length) {
     const empty = {
       user_id: authUser.id,
@@ -20,10 +23,10 @@ export async function GET() {
       auction_pool: false
     };
     const created = await supabaseAdminTable<any[]>("player_profiles", { method: "POST", body: JSON.stringify([empty]) });
-    return NextResponse.json({ profile: created[0] ?? empty, emailVerified: Boolean(authUser.email_confirmed_at) });
+    return NextResponse.json({ profile: created[0] ?? empty, emailVerified: Boolean(authUser.email_confirmed_at), user: { username: userRows[0]?.username ?? authUser.email?.split("@")[0], email: userRows[0]?.email ?? authUser.email }, paymentStatus: paymentRows[0]?.status ?? getPayment(authUser.id).status });
   }
 
-  return NextResponse.json({ profile: rows[0], emailVerified: Boolean(authUser.email_confirmed_at) });
+  return NextResponse.json({ profile: rows[0], emailVerified: Boolean(authUser.email_confirmed_at), user: { username: userRows[0]?.username ?? authUser.email?.split("@")[0], email: userRows[0]?.email ?? authUser.email }, paymentStatus: paymentRows[0]?.status ?? getPayment(authUser.id).status });
 }
 
 export async function PUT(req: NextRequest) {

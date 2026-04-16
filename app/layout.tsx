@@ -7,8 +7,8 @@ import { LaunchGate } from "@/components/launch/LaunchGate";
 import { isLaunchUnlocked } from "@/lib/config/launch";
 
 export const metadata: Metadata = {
-  title: "PlayGFL | Official BGMI Platform",
-  description: "PlayGFL official BGMI esports tournament platform",
+  title: "PlayGFL Season 2 | BGMI League Hub",
+  description: "PlayGFL Season 2 tournament hub for registration, auction, standings, and operations",
   metadataBase: new URL("https://gfl-league.vercel.app")
 };
 

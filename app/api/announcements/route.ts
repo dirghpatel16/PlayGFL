@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { addAnnouncement, getPublicState } from "@/lib/server/state";
 import { Announcement } from "@/lib/types/models";
-import { asNonEmptyString, badRequest, parseJSON, requireAdmin } from "@/lib/server/auth";
+import { asNonEmptyString, badRequest, parseJSON } from "@/lib/server/auth";
+import { requireCommissionerRequest } from "@/lib/auth/commissioner";
 
 const allowedPriority = new Set<Announcement["priority"]>(["low", "medium", "high"]);
 
@@ -10,7 +11,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const blocked = requireAdmin(req);
+  const blocked = requireCommissionerRequest(req);
   if (blocked) return blocked;
 
   const body = await parseJSON(req);

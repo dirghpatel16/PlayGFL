@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
-import { requireAdminUser } from "@/lib/auth/permissions";
+import { NextRequest, NextResponse } from "next/server";
 import { isSupabaseConfigured, supabaseAdminTable } from "@/lib/supabase/rest";
+import { requireCommissionerRequest } from "@/lib/auth/commissioner";
 
-export async function GET() {
-  const authz = await requireAdminUser();
-  if (!authz.ok) return NextResponse.json({ error: authz.reason }, { status: 403 });
+export async function GET(req: NextRequest) {
+  const blocked = requireCommissionerRequest(req);
+  if (blocked) return blocked;
 
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ users: [] });

@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { HeroSection } from "@/components/home/HeroSection";
 import { HighlightsStrip } from "@/components/home/HighlightsStrip";
 import { AnnouncementTicker } from "@/components/shared/AnnouncementTicker";
 import { fetchJSON } from "@/lib/services/http";
 import { Tournament, Captain, Announcement } from "@/lib/types/models";
+import { scoringConfig, seasonConfig } from "@/lib/config/season";
 
 interface PublicPayload {
   tournament: Tournament;
@@ -26,48 +28,34 @@ export default function HomePage() {
       <AnnouncementTicker announcements={data?.announcements ?? []} />
       <HighlightsStrip />
 
-      <section className="mt-10 grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
-        <article>
-          <p className="eyebrow">League Structure</p>
-          <h2 className="section-title mt-3">Competitive path from registration to finals.</h2>
-          <ol className="mt-6 space-y-5 border-l border-white/20 pl-5">
-            {[
-              "Registration + identity verification",
-              "Profile screening and roster approval",
-              "Captain auction draft and season lock-in"
-            ].map((step, i) => (
-              <li key={step} className="relative">
-                <span className="absolute -left-[30px] top-0 text-xs font-bold tracking-[0.2em] text-neon">0{i + 1}</span>
-                <p className="text-base font-semibold uppercase tracking-wide">{step}</p>
-              </li>
-            ))}
-          </ol>
+      <section className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <Link href="/auth/signup" className="card p-4 hover:border-neon">Register</Link>
+        <Link href="/payment" className="card p-4 hover:border-neon">Pay Entry Fee ₹{seasonConfig.entryFee}</Link>
+        <Link href="/tournament" className="card p-4 hover:border-neon">View Tournament</Link>
+        <Link href="/auction" className="card p-4 hover:border-neon">View Auction</Link>
+      </section>
+
+      <section className="mt-12 grid gap-6 lg:grid-cols-2">
+        <article className="card p-5">
+          <p className="eyebrow">Match Format Overview</p>
+          <h2 className="section-title mt-2">Season 2 Rules Snapshot</h2>
+          <ul className="mt-4 space-y-2 text-sm text-white/80">
+            <li>• Normal rounds: {scoringConfig.normalRounds.gamesPerRound} games each.</li>
+            <li>• Placement: 1st {scoringConfig.normalRounds.placement.first}, 2nd {scoringConfig.normalRounds.placement.second}, 3rd {scoringConfig.normalRounds.placement.third}.</li>
+            <li>• Bonus: back-to-back +{scoringConfig.bonuses.backToBackChicken}, threepeat +{scoringConfig.bonuses.threepeatChicken}.</li>
+            <li>• Golden rounds on {scoringConfig.goldenRounds.map} with nominated player x{scoringConfig.goldenRounds.nominatedMultiplier}.</li>
+          </ul>
         </article>
 
         <article className="event-panel">
-          <p className="eyebrow">Commissioner Note</p>
-          <p className="mt-4 text-lg font-semibold uppercase leading-relaxed text-white/90">
-            This is a tournament-first environment. No gimmicks. No filler. Just disciplined operations and high-pressure BGMI competition.
-          </p>
+          <p className="eyebrow">Community</p>
+          <h3 className="mt-2 text-2xl font-black uppercase">Join PlayGFL Community</h3>
+          <p className="mt-3 text-sm text-white/75">Follow updates, scrim calls, and live season alerts.</p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <a href="https://discord.gg/XzgMJMK3" target="_blank" rel="noopener noreferrer" className="cta-primary focus:outline-none focus:ring-2 focus:ring-neon">Discord</a>
+            <a href="https://www.instagram.com/playgfl?igsh=dGppa2tkenVoaDV3" target="_blank" rel="noopener noreferrer" className="cta-ghost focus:outline-none focus:ring-2 focus:ring-neon">Instagram</a>
+          </div>
         </article>
-      </section>
-
-      <section className="mt-12">
-        <p className="eyebrow">Captain Lineup</p>
-        <h2 className="section-title mt-3">Draft leaders for season one.</h2>
-        <div className="mt-5 grid gap-4 sm:grid-cols-3">
-          {data?.captains?.length ? (
-            data.captains.map((c) => (
-              <article key={c.id} className="border border-white/15 bg-white/[0.02] p-5">
-                <p className="text-xs uppercase tracking-[0.2em] text-neon">{c.tag}</p>
-                <h3 className="mt-3 text-2xl font-black uppercase">{c.name}</h3>
-                <p className="mt-2 text-xs uppercase tracking-[0.14em] text-white/65">Region · {c.region}</p>
-              </article>
-            ))
-          ) : (
-            <p className="text-sm text-white/70">No captains added yet. Admin can add captains from the Admin panel.</p>
-          )}
-        </div>
       </section>
     </>
   );

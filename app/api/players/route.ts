@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { addPlayer, getPublicState } from "@/lib/server/state";
+import { addPlayer, getPublicState, removePlayer } from "@/lib/server/state";
 import { PreferredRole } from "@/lib/types/models";
-import { asNonEmptyString, badRequest, parseJSON, requireAdmin } from "@/lib/server/auth";
+import { asNonEmptyString, badRequest, parseJSON } from "@/lib/server/auth";
+import { requireCommissionerRequest } from "@/lib/auth/commissioner";
 import { isSupabaseConfigured, supabaseAdminTable } from "@/lib/supabase/rest";
 
 const allowedRoles = new Set<PreferredRole>(["Assaulter", "Support", "IGL", "Sniper", "Flexible"]);
@@ -15,7 +16,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const blocked = requireAdmin(req);
+  const blocked = requireCommissionerRequest(req);
   if (blocked) return blocked;
 
   const body = await parseJSON(req);
@@ -39,4 +40,23 @@ export async function POST(req: NextRequest) {
 
   const created = addPlayer({ name, role: role as PreferredRole, region, style });
   return NextResponse.json(created, { status: 201 });
+}
+
+
+export async function DELETE(req: NextRequest) {
+  const blocked = requireCommissionerRequest(req);
+  if (blocked) return blocked;
+
+  const body = await parseJSON(req);
+  if (!body) return badRequest("Invalid JSON body");
+  const playerId = asNonEmptyString(body.playerId);
+  if (!playerId) return badRequest("playerId is required");
+
+  if (isSupabaseConfigured()) {
+    await supabaseAdminTable(`auction_players?id=eq.${playerId}`, { method: "DELETE" });
+    return NextResponse.json({ ok: true });
+  }
+
+  removePlayer(playerId);
+  return NextResponse.json({ ok: true });
 }

@@ -1,8 +1,10 @@
+import { seasonConfig } from "@/lib/config/season";
+
 const highlights = [
-  { label: "Team Slots", value: "12" },
-  { label: "Verified Captains", value: "3" },
-  { label: "Auction Pool", value: "9" },
-  { label: "Prize Purse", value: "₹50,000" }
+  { label: "Captains", value: `${seasonConfig.captains}` },
+  { label: "Auction Players", value: `${seasonConfig.auctionPlayers}` },
+  { label: "Matches", value: `${seasonConfig.matches}` },
+  { label: "Prize Pool", value: `₹${seasonConfig.prizePool}` }
 ];
 
 export function HighlightsStrip() {

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { addCaptain, getPublicState } from "@/lib/server/state";
-import { asNonEmptyString, badRequest, parseJSON, requireAdmin } from "@/lib/server/auth";
+import { asNonEmptyString, badRequest, parseJSON } from "@/lib/server/auth";
+import { requireCommissionerRequest } from "@/lib/auth/commissioner";
+import { removeCaptain, renameCaptain } from "@/lib/server/state";
 import { isSupabaseConfigured, supabaseAdminTable } from "@/lib/supabase/rest";
 
 export async function GET() {
@@ -12,7 +14,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const blocked = requireAdmin(req);
+  const blocked = requireCommissionerRequest(req);
   if (blocked) return blocked;
 
   const body = await parseJSON(req);
@@ -37,4 +39,42 @@ export async function POST(req: NextRequest) {
 
   const created = addCaptain({ name, tag, region, pursePoints });
   return NextResponse.json(created, { status: 201 });
+}
+
+
+export async function DELETE(req: NextRequest) {
+  const blocked = requireCommissionerRequest(req);
+  if (blocked) return blocked;
+
+  const body = await parseJSON(req);
+  if (!body) return badRequest("Invalid JSON body");
+  const captainId = asNonEmptyString(body.captainId);
+  if (!captainId) return badRequest("captainId is required");
+
+  if (isSupabaseConfigured()) {
+    await supabaseAdminTable(`captains?id=eq.${captainId}`, { method: "DELETE" });
+    return NextResponse.json({ ok: true });
+  }
+
+  removeCaptain(captainId);
+  return NextResponse.json({ ok: true });
+}
+
+export async function PATCH(req: NextRequest) {
+  const blocked = requireCommissionerRequest(req);
+  if (blocked) return blocked;
+
+  const body = await parseJSON(req);
+  if (!body) return badRequest("Invalid JSON body");
+  const captainId = asNonEmptyString(body.captainId);
+  const name = asNonEmptyString(body.name);
+  if (!captainId || !name) return badRequest("captainId and name are required");
+
+  if (isSupabaseConfigured()) {
+    await supabaseAdminTable(`captains?id=eq.${captainId}`, { method: "PATCH", body: JSON.stringify({ name }) });
+    return NextResponse.json({ ok: true });
+  }
+
+  renameCaptain(captainId, name);
+  return NextResponse.json({ ok: true });
 }

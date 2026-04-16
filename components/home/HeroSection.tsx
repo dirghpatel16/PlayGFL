@@ -12,10 +12,10 @@ export function HeroSection({ tournament }: HeroSectionProps) {
       <div className="hero-shell grid gap-8 p-5 sm:p-8 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10 lg:p-10">
         <div className="flex flex-col justify-between gap-7">
           <div>
-            <p className="eyebrow">PlayGFL • BGMI Season 02</p>
-            <h1 className="hero-title mt-4">BATTLEGROUNDS. BUILT FOR CHAMPIONS.</h1>
+            <p className="eyebrow">PlayGFL • Season 2</p>
+            <h1 className="hero-title mt-4">PLAYGFL SEASON 2 EVENT HUB</h1>
             <p className="mt-5 max-w-xl text-sm text-white/75 sm:text-base">
-              India&apos;s most serious BGMI competition platform. Verified talent, captain-led drafts, and league operations built for elite play.
+              A premium, mobile-first BGMI league hub for Season 2 with registration, payment, auction, standings, and public match coverage.
             </p>
           </div>
 
@@ -31,21 +31,21 @@ export function HeroSection({ tournament }: HeroSectionProps) {
 
           <div className="flex flex-wrap gap-3">
             <Link className="cta-primary" href="/auth/signup">
-              Register For Trials
+              Register
             </Link>
             <Link className="cta-ghost" href="/tournament">
-              View Rulebook
+              View Tournament
             </Link>
           </div>
         </div>
 
         <aside className="event-panel">
           <p className="eyebrow">Official Event Portal</p>
-          <h2 className="mt-4 text-2xl font-black uppercase leading-tight sm:text-3xl">PlayGFL Championship Circuit</h2>
+          <h2 className="mt-4 text-2xl font-black uppercase leading-tight sm:text-3xl">PlayGFL Season 2</h2>
           <div className="mt-6 space-y-4 border-t border-white/15 pt-5 text-sm">
             <div className="meta-row">
               <span>Season</span>
-              <strong>02 · 2026</strong>
+              <strong>Season 2 · 2026</strong>
             </div>
             <div className="meta-row">
               <span>Game</span>
@@ -57,7 +57,7 @@ export function HeroSection({ tournament }: HeroSectionProps) {
             </div>
             <div className="meta-row">
               <span>Prize Pool</span>
-              <strong>₹{(tournament?.prizePoolINR ?? 50000).toLocaleString("en-IN")}</strong>
+              <strong>₹{(tournament?.prizePoolINR ?? 150).toLocaleString("en-IN")}</strong>
             </div>
           </div>
           <div className="mt-6 border-t border-white/10 pt-4 text-xs uppercase tracking-[0.22em] text-white/55">

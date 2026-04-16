@@ -11,6 +11,8 @@ const links = [
   ["Tournament", "/tournament"],
   ["Auction", "/auction"],
   ["Players", "/players"],
+  ["Standings", "/standings"],
+  ["Payment", "/payment"],
   ["Dashboard", "/dashboard"]
 ] as const satisfies readonly [string, Route][];
 

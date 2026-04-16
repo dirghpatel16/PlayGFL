@@ -18,12 +18,12 @@ export function AuctionStagePanel() {
   const [runtime, setRuntime] = useState<AuctionRuntime | null>(null);
   const [captains, setCaptains] = useState<Captain[]>([]);
   const [error, setError] = useState("");
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isCommissioner, setIsCommissioner] = useState(false);
 
   const load = () => {
     fetchJSON<AuctionRuntime>("/api/auction/state").then(setRuntime).catch((e) => setError(e.message));
     fetchJSON<{ captains: Captain[] }>("/api/captains").then((d) => setCaptains(d.captains)).catch(() => null);
-    fetchJSON<{ user: { role: string } | null }>("/api/me").then((d) => setIsAdmin(d.user?.role === "admin")).catch(() => setIsAdmin(false));
+    fetchJSON<{ enabled: boolean }>("/api/commissioner/session").then((d) => setIsCommissioner(d.enabled)).catch(() => setIsCommissioner(false));
   };
 
   useEffect(() => {
@@ -91,7 +91,7 @@ export function AuctionStagePanel() {
           </div>
         </div>
 
-        {isAdmin && <div className="mt-5 flex flex-wrap gap-2">
+        {isCommissioner && <div className="mt-5 flex flex-wrap gap-2">
           <button className="cta-primary" onClick={() => act("start")}>Start Auction</button>
           <button className="cta-ghost" onClick={() => act("set_drawing")}>Start Draw</button>
           <button className="cta-ghost" onClick={() => act("draw_next")}>Draw Next Player</button>
@@ -101,9 +101,9 @@ export function AuctionStagePanel() {
           <button className="border border-white/20 px-4 py-3 text-xs font-bold uppercase tracking-[0.14em]" onClick={() => act("close")}>Close Auction</button>
         </div>}
 
-        {!isAdmin && <p className="mt-5 text-sm text-white/60">Live viewer mode: admin controls are hidden for non-admin users.</p>}
+        {!isCommissioner && <p className="mt-5 text-sm text-white/60">Live viewer mode: commissioner controls are hidden for public users.</p>}
 
-        {isAdmin && runtime?.state === "selection" && (
+        {isCommissioner && runtime?.state === "selection" && (
           <div className="mt-4 border-t border-white/10 pt-4">
             <p className="text-xs uppercase tracking-[0.2em] text-white/60">Assign to captain</p>
             <div className="mt-2 flex flex-wrap gap-2">

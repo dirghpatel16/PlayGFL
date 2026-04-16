@@ -6,14 +6,14 @@ export function Footer() {
       <div className="container-gfl grid gap-4 text-sm text-white/70 sm:grid-cols-2">
         <p>© 2026 PlayGFL</p>
         <div className="flex flex-wrap gap-4 sm:justify-end">
-          <a href="https://www.instagram.com/playgfl?igsh=dGppa2tkenVoaDV3" target="_blank" rel="noopener noreferrer" className="transition hover:text-neon">
+          <a aria-label="PlayGFL Instagram" href="https://www.instagram.com/playgfl?igsh=dGppa2tkenVoaDV3" target="_blank" rel="noopener noreferrer" className="transition hover:text-neon focus:outline-none focus:ring-2 focus:ring-neon rounded">
             Instagram
           </a>
-          <a href="https://discord.gg/XzgMJMK3" target="_blank" rel="noopener noreferrer" className="transition hover:text-neon">
+          <a aria-label="PlayGFL Discord" href="https://discord.gg/XzgMJMK3" target="_blank" rel="noopener noreferrer" className="transition hover:text-neon focus:outline-none focus:ring-2 focus:ring-neon rounded">
             Discord
           </a>
-          <Link href="/tournament" className="transition hover:text-neon">Rules</Link>
-          <Link href="/players" className="transition hover:text-neon">Community</Link>
+          <Link href="/rules" className="transition hover:text-neon focus:outline-none focus:ring-2 focus:ring-neon rounded">Rules & Scoring</Link>
+          <Link href="/standings" className="transition hover:text-neon focus:outline-none focus:ring-2 focus:ring-neon rounded">Standings</Link>
         </div>
       </div>
     </footer>
