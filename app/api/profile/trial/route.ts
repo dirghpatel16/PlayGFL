@@ -5,7 +5,7 @@ import { supabaseAdminTable } from "@/lib/supabase/rest";
 export async function POST() {
   const authUser = await getSessionUser();
   if (!authUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!authUser.email_confirmed_at) return NextResponse.json({ error: "Verify account first" }, { status: 403 });
+  if (!authUser.emailVerified) return NextResponse.json({ error: "Verify account first" }, { status: 403 });
 
   const rows = await supabaseAdminTable<any[]>(`player_profiles?user_id=eq.${authUser.id}&select=completion_percent&limit=1`);
   const paymentRows = await supabaseAdminTable<any[]>(`payment_submissions?user_id=eq.${authUser.id}&select=status&limit=1`).catch(() => []);

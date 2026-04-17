@@ -5,7 +5,7 @@ export const seasonConfig = {
   captains: 3,
   auctionPlayers: 9,
   matches: 30,
-  entryFee: 50,
+  entryFee: 17,
   prizePool: 150,
   prizes: {
     first: 75,

@@ -12,19 +12,16 @@ export async function GET(req: NextRequest) {
   if (!isSupabaseConfigured()) return NextResponse.json({ submissions: getPaymentSubmissions(search) });
 
   const rows = await supabaseAdminTable<any[]>("payment_submissions?select=user_id,status,utr,payer_name,screenshot_name,submitted_at,updated_at");
-  const users = await supabaseAdminTable<any[]>("users?select=id,username,email").catch(() => []);
-  const profiles = await supabaseAdminTable<any[]>("player_profiles?select=user_id,bgmi_name,bgmi_id,region").catch(() => []);
+  const profiles = await supabaseAdminTable<any[]>("player_profiles?select=user_id,username,bgmi_ign,bgmi_id").catch(() => []);
 
   const withUser = rows.map((r) => {
-    const u = users.find((x) => x.id === r.user_id);
     const p = profiles.find((x) => x.user_id === r.user_id);
     return {
       ...r,
-      username: u?.username ?? "Unknown",
-      email: u?.email ?? "",
-      bgmi_name: p?.bgmi_name,
+      username: p?.username ?? "Unknown",
+      email: "",
+      bgmi_name: p?.bgmi_ign,
       bgmi_id: p?.bgmi_id,
-      region: p?.region,
       history: []
     };
   });

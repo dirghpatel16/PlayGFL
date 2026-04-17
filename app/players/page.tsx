@@ -18,9 +18,9 @@ export default function PlayersPage() {
   return (
     <section className="py-8 space-y-6">
       <div>
-        <h1 className="section-title">GFL Auction Player Pool</h1>
+        <h1 className="section-title">GFL Registered Players</h1>
         {!players.length && (
-          <p className="mt-3 text-sm text-white/70">The auction pool is being prepared. Approved players will appear here after trials and shortlisting.</p>
+          <p className="mt-3 text-sm text-white/70">No players have completed registration yet. Players will appear automatically after signup, profile completion, and payment submission.</p>
         )}
       </div>
 
@@ -51,7 +51,7 @@ export default function PlayersPage() {
 
       {!players.length && (
         <div className="card p-4 text-sm text-white/70">
-          Admin note: use the <Link href="/admin" className="text-neon underline">commissioner console</Link> to manage the live player list, captains, and auction pool.
+          Organizer note: use the <Link href="/admin" className="text-neon underline">commissioner console</Link> to verify payments and run auction operations once players are registered.
         </div>
       )}
     </section>

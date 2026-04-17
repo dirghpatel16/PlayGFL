@@ -4,8 +4,8 @@ import { useMemo } from "react";
 
 const lines = [
   "Welcome to GFL. The battleground is almost ready.",
-  "Next in the auction pool: ShadowOP, a flexible fragger with aggressive playstyle.",
-  "Captain Raven locks in ClutchBhai. Big pickup.",
+  "Next in the auction pool: a newly registered player profile is queued for bidding.",
+  "Captain lock-in recorded. Squad build is underway.",
   "Tournament goes live soon. Stay sharp, warriors."
 ];
 

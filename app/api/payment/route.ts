@@ -69,6 +69,19 @@ export async function POST(req: NextRequest) {
   });
 
   const payment = rows[0] ?? payload;
+
+  await supabaseAdminTable<any[]>("tournament_registrations", {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates,return=representation" },
+    body: JSON.stringify([{
+      user_id: authUser.id,
+      tournament_id: "gfl-s2",
+      status: "payment_submitted",
+      payment_status: "submitted",
+      updated_at: now
+    }])
+  }).catch(() => []);
+
   return NextResponse.json({ payment: { ...payment, label: label(payment.status) } }, { status: 201 });
 }
 
@@ -96,5 +109,17 @@ export async function PATCH(req: NextRequest) {
   });
 
   const payment = rows[0] ?? { user_id: userId, status: nextStatus };
+  await supabaseAdminTable<any[]>("tournament_registrations", {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates,return=representation" },
+    body: JSON.stringify([{
+      user_id: userId,
+      tournament_id: "gfl-s2",
+      status: nextStatus === "confirmed" ? "registered" : "payment_rejected",
+      payment_status: nextStatus,
+      updated_at: new Date().toISOString()
+    }])
+  }).catch(() => []);
+
   return NextResponse.json({ payment: { ...payment, label: label(payment.status) } });
 }
