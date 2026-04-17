@@ -35,7 +35,7 @@ export function CountdownTimer({ launchISO, startISO }: Props) {
       </div>
 
       {phase === "live" ? (
-        <p className="mt-3 text-2xl font-black uppercase tracking-wider text-neon sm:text-4xl">PLAYGFL LIVE NOW</p>
+        <p className="mt-3 text-xl font-black uppercase tracking-wider text-neon sm:text-4xl">GFL LIVE NOW</p>
       ) : (
         <div className="countdown-grid mt-4">
           {[

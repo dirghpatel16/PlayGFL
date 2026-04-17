@@ -6,20 +6,21 @@ import { fetchJSON } from "@/lib/services/http";
 const roles = ["Assaulter", "Support", "IGL", "Sniper", "Flexible"];
 
 interface ProfilePayload {
-  bgmi_name?: string | null;
+  username?: string | null;
+  bgmi_ign?: string | null;
   bgmi_id?: string | null;
-  preferred_roles?: string[];
+  role_preference?: string | null;
   completion_percent?: number;
 }
 
 export function ProfileEditor() {
-  const [profile, setProfile] = useState<ProfilePayload>({ preferred_roles: [] });
+  const [profile, setProfile] = useState<ProfilePayload>({});
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
     fetchJSON<{ profile: ProfilePayload }>("/api/profile")
-      .then((d) => setProfile({ preferred_roles: [], ...d.profile }))
+      .then((d) => setProfile({ ...d.profile }))
       .catch((err) => setMessage(err.message))
       .finally(() => setLoading(false));
   }, []);
@@ -32,7 +33,7 @@ export function ProfileEditor() {
         body: JSON.stringify(profile)
       });
       setProfile(data.profile);
-      setMessage("Player identity saved.");
+      setMessage("Profile saved. Continue to payment.");
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Unable to save profile");
     }
@@ -42,21 +43,16 @@ export function ProfileEditor() {
 
   return (
     <section className="card p-5">
-      <h2 className="text-xl font-bold">Complete Player Identity</h2>
-      <p className="mt-1 text-sm text-white/70">Required for Season 2 trials: BGMI IGN, BGMI ID, and role preference.</p>
+      <h2 className="text-xl font-bold">Complete Minimal Player Profile</h2>
+      <p className="mt-1 text-sm text-white/70">Only required fields: username, BGMI IGN, BGMI ID, role preference.</p>
       <div className="mt-4 grid gap-3">
-        <input className="rounded-xl bg-white/5 p-3" placeholder="BGMI IGN" value={profile.bgmi_name ?? ""} onChange={(e) => setProfile((p) => ({ ...p, bgmi_name: e.target.value }))} />
+        <input className="rounded-xl bg-white/5 p-3" placeholder="Username" value={profile.username ?? ""} onChange={(e) => setProfile((p) => ({ ...p, username: e.target.value }))} />
+        <input className="rounded-xl bg-white/5 p-3" placeholder="BGMI IGN" value={profile.bgmi_ign ?? ""} onChange={(e) => setProfile((p) => ({ ...p, bgmi_ign: e.target.value }))} />
         <input className="rounded-xl bg-white/5 p-3" placeholder="BGMI ID" value={profile.bgmi_id ?? ""} onChange={(e) => setProfile((p) => ({ ...p, bgmi_id: e.target.value }))} />
-        <div>
-          <p className="mb-2 text-sm text-white/70">Role Preference</p>
-          <div className="flex flex-wrap gap-2">
-            {roles.map((role) => (
-              <button key={role} type="button" onClick={() => setProfile((prev) => ({ ...prev, preferred_roles: [role] }))} className={`rounded-full px-3 py-2 text-xs ${(profile.preferred_roles ?? []).includes(role) ? "bg-accent" : "bg-white/10"}`}>
-                {role}
-              </button>
-            ))}
-          </div>
-        </div>
+        <select className="rounded-xl bg-white/5 p-3" value={profile.role_preference ?? ""} onChange={(e) => setProfile((p) => ({ ...p, role_preference: e.target.value }))}>
+          <option value="">Select role preference</option>
+          {roles.map((role) => <option key={role} value={role}>{role}</option>)}
+        </select>
         <div className="mt-2 flex items-center gap-3">
           <button className="cta-primary" type="button" onClick={save}>Save Profile</button>
           <p className="text-sm text-white/70">Completion: {profile.completion_percent ?? 0}%</p>

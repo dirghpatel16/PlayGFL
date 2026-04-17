@@ -38,7 +38,10 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (requiresAuth(pathname) && !req.cookies.get(ACCESS_COOKIE)?.value) {
+  const hasLegacySession = Boolean(req.cookies.get(ACCESS_COOKIE)?.value);
+  const hasClerkSession = Boolean(req.cookies.get("__session")?.value);
+
+  if (requiresAuth(pathname) && !hasLegacySession && !hasClerkSession) {
     const url = req.nextUrl.clone();
     url.pathname = "/auth/login";
     return NextResponse.redirect(url);
@@ -46,6 +49,13 @@ export function middleware(req: NextRequest) {
 
   const headers = new Headers(req.headers);
   headers.set("x-gfl-pathname", pathname);
+  const clerkUserId = req.headers.get("x-clerk-user-id");
+  if (clerkUserId) {
+    headers.set("x-clerk-user-id", clerkUserId);
+    if (req.headers.get("x-clerk-user-email")) headers.set("x-clerk-user-email", req.headers.get("x-clerk-user-email") || "");
+    if (req.headers.get("x-clerk-email-verified")) headers.set("x-clerk-email-verified", req.headers.get("x-clerk-email-verified") || "");
+    if (req.headers.get("x-clerk-username")) headers.set("x-clerk-username", req.headers.get("x-clerk-username") || "");
+  }
 
   return NextResponse.next({ request: { headers } });
 }

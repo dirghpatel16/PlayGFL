@@ -118,7 +118,7 @@ export function AuthForm({ mode }: Props) {
 
   return (
     <form onSubmit={onSubmit} className="card mx-auto max-w-md space-y-4 p-6">
-      <h1 className="text-2xl font-bold">{mode === "login" ? "Welcome back" : mode === "signup" ? "Create your PlayGFL account" : "Reset Password"}</h1>
+      <h1 className="text-2xl font-bold">{mode === "login" ? "Welcome back" : mode === "signup" ? "Create your GFL account" : "Reset Password"}</h1>
       <p className="text-sm text-white/70">{mode === "signup" ? "Fast signup with OTP verification." : mode === "login" ? "Login to manage profile and trials." : "We’ll send a reset OTP to your inbox."}</p>
       {mode === "signup" && <input className="w-full rounded-xl bg-white/5 p-3" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} required />}
       <input className="w-full rounded-xl bg-white/5 p-3" placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />

@@ -22,7 +22,7 @@ export async function GET() {
           prizePoolINR: tournamentRows[0].prize_pool_inr,
           format: tournamentRows[0].format
         }
-      : null;
+      : getPublicState().tournament;
 
     return NextResponse.json({
       tournament,

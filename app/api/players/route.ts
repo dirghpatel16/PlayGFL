@@ -9,8 +9,31 @@ const allowedRoles = new Set<PreferredRole>(["Assaulter", "Support", "IGL", "Sni
 
 export async function GET() {
   if (isSupabaseConfigured()) {
-    const players = await supabaseAdminTable<any[]>("auction_players?select=*");
-    return NextResponse.json({ players: players.map((p) => ({ id: p.id, name: p.name, role: p.role, region: p.region, style: p.style, soldToCaptainId: p.sold_to_captain_id })) });
+    const [registrations, profiles] = await Promise.all([
+      supabaseAdminTable<any[]>("tournament_registrations?select=user_id,status,payment_status").catch(() => []),
+      supabaseAdminTable<any[]>("player_profiles?select=user_id,username,bgmi_ign,bgmi_id,role_preference").catch(() => [])
+    ]);
+
+    const registeredIds = new Set(
+      registrations
+        .filter((r) => ["profile_completed", "payment_submitted", "registered"].includes(String(r.status)))
+        .map((r) => r.user_id)
+    );
+
+    const players = profiles
+      .filter((profile) => registeredIds.has(profile.user_id))
+      .map((profile) => ({
+        id: profile.user_id,
+        name: profile.username || profile.bgmi_ign || "Unnamed",
+        role: profile.role_preference || "Flexible",
+        region: "",
+        style: profile.bgmi_id || "",
+        soldToCaptainId: undefined,
+        bgmiIgn: profile.bgmi_ign,
+        bgmiId: profile.bgmi_id
+      }));
+
+    return NextResponse.json({ players });
   }
   return NextResponse.json({ players: getPublicState().players });
 }
@@ -41,7 +64,6 @@ export async function POST(req: NextRequest) {
   const created = addPlayer({ name, role: role as PreferredRole, region, style });
   return NextResponse.json(created, { status: 201 });
 }
-
 
 export async function DELETE(req: NextRequest) {
   const blocked = requireCommissionerRequest(req);

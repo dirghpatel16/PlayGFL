@@ -1,11 +1,11 @@
 export const seasonConfig = {
-  brand: "PlayGFL",
+  brand: "GFL",
   seasonLabel: "Season 2",
   totalPlayers: 12,
   captains: 3,
   auctionPlayers: 9,
   matches: 30,
-  entryFee: 50,
+  entryFee: 17,
   prizePool: 150,
   prizes: {
     first: 75,
