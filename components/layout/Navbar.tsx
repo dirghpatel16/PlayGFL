@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Menu } from "lucide-react";
 import { useState } from "react";
 import { MobileNavDrawer } from "@/components/layout/MobileNavDrawer";
+import { SignInButton, SignUpButton, UserButton, SignedIn, SignedOut } from "@clerk/nextjs";
 import type { Route } from "next";
 
 const links = [
@@ -32,13 +33,30 @@ export function Navbar() {
             </Link>
           ))}
         </nav>
-        <button
-          aria-label="Open navigation"
-          className="rounded-lg border border-white/20 bg-white/5 p-2 md:hidden"
-          onClick={() => setOpen(true)}
-        >
-          <Menu size={20} />
-        </button>
+        <div className="flex items-center gap-3">
+          <SignedOut>
+            <SignInButton mode="redirect">
+              <button className="hidden text-xs font-semibold uppercase tracking-[0.14em] text-white/70 transition hover:text-neon md:block">
+                Sign In
+              </button>
+            </SignInButton>
+            <SignUpButton mode="redirect">
+              <button className="hidden border border-neon bg-transparent px-4 py-1.5 text-xs font-bold uppercase tracking-[0.14em] text-neon transition hover:bg-neon hover:text-black md:block">
+                Join GFL
+              </button>
+            </SignUpButton>
+          </SignedOut>
+          <SignedIn>
+            <UserButton afterSignOutUrl="/" />
+          </SignedIn>
+          <button
+            aria-label="Open navigation"
+            className="rounded-lg border border-white/20 bg-white/5 p-2 md:hidden"
+            onClick={() => setOpen(true)}
+          >
+            <Menu size={20} />
+          </button>
+        </div>
       </div>
       <MobileNavDrawer open={open} onClose={() => setOpen(false)} links={links.map(([label, href]) => ({ label, href }))} />
     </header>

@@ -1,5 +1,5 @@
-import { AuthForm } from "@/components/auth/AuthForm";
+import { redirect } from "next/navigation";
 
 export default function LoginPage() {
-  return <div className="py-10"><AuthForm mode="login" /></div>;
+  redirect("/sign-in");
 }
