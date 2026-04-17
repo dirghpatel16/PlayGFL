@@ -5,7 +5,7 @@ import { fetchJSON } from "@/lib/services/http";
 import { seasonMatchPlan } from "@/lib/config/matchFormat";
 
 interface Team { id: string; name: string }
-interface Captain { id: string; name: string; tag: string; region: string }
+interface Captain { id: string; name: string; tag: string; region: string; user_id?: string | null }
 interface Player { id: string; name: string; role: string; region: string; style: string }
 interface SubmissionHistoryEvent { id: string; status: string; note: string; at: string }
 interface Submission {
@@ -213,8 +213,30 @@ export function CommissionerPanel() {
           <input required name="name" className="w-full rounded bg-white/5 p-2" placeholder="Captain name" />
           <input required name="tag" className="w-full rounded bg-white/5 p-2" placeholder="Tag" />
           <button className="cta-primary w-full">Add Captain</button>
-          <div className="space-y-1 max-h-40 overflow-auto">
-            {captains.map((c) => <div key={c.id} className="flex justify-between text-xs"><span>{c.name}</span>{isOwner && <button type="button" className="text-danger" onClick={() => run("/api/captains", "DELETE", { captainId: c.id })}>Remove</button>}</div>)}
+          <div className="space-y-2 max-h-60 overflow-auto">
+            {captains.map((c) => (
+              <div key={c.id} className="border border-white/10 p-2 text-xs space-y-1">
+                <div className="flex justify-between">
+                  <span className="font-semibold">{c.name}</span>
+                  {isOwner && <button type="button" className="text-danger" onClick={() => run("/api/captains", "DELETE", { captainId: c.id })}>Remove</button>}
+                </div>
+                {isOwner && (
+                  <div className="flex gap-1 items-center">
+                    <span className="text-white/50 shrink-0">User ID:</span>
+                    <input
+                      defaultValue={c.user_id ?? ""}
+                      placeholder="Clerk user_id"
+                      className="flex-1 bg-white/5 px-2 py-1 text-xs"
+                      onBlur={(e) => {
+                        const val = e.target.value.trim();
+                        if (val !== (c.user_id ?? "")) run("/api/captains", "PATCH", { captainId: c.id, user_id: val || null });
+                      }}
+                    />
+                  </div>
+                )}
+                {!isOwner && c.user_id && <span className="text-white/40">Linked ✓</span>}
+              </div>
+            ))}
           </div>
         </form>
 

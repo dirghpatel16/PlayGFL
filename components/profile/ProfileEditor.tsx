@@ -13,7 +13,7 @@ interface ProfilePayload {
   completion_percent?: number;
 }
 
-export function ProfileEditor() {
+export function ProfileEditor({ onComplete }: { onComplete?: () => void } = {}) {
   const [profile, setProfile] = useState<ProfilePayload>({});
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
@@ -33,7 +33,12 @@ export function ProfileEditor() {
         body: JSON.stringify(profile)
       });
       setProfile(data.profile);
-      setMessage("Profile saved. Continue to payment.");
+      if ((data.profile.completion_percent ?? 0) >= 100 && onComplete) {
+        setMessage("Profile complete! Advancing to payment...");
+        setTimeout(onComplete, 600);
+      } else {
+        setMessage("Profile saved. Fill all fields to continue.");
+      }
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Unable to save profile");
     }

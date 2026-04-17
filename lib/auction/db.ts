@@ -1,6 +1,9 @@
 import { supabaseAdminTable } from "@/lib/supabase/rest";
 
-export type AuctionAction = "start" | "set_drawing" | "draw_next" | "open_selection" | "pick" | "next" | "reset" | "close";
+export type AuctionAction = "start" | "draw_next" | "open_bidding" | "bid" | "hammer" | "pick" | "next" | "reset" | "close";
+
+const BID_WINDOW_MS = 15_000; // 15 seconds per strike window
+const MAX_TEAM_PLAYERS = 3;   // captain + 3 picks = 4 total
 
 interface SessionRow {
   id: string;
@@ -10,6 +13,10 @@ interface SessionRow {
   current_captain_turn: number;
   announcer_line: string | null;
   is_active: boolean;
+  current_bid_amount: number;
+  current_bid_captain_id: string | null;
+  strike_count: number;
+  bid_deadline: string | null;
 }
 
 interface PoolRow {
@@ -19,19 +26,102 @@ interface PoolRow {
   auction_players: { id: string; name: string; role: string; region: string; style: string; sold_to_captain_id: string | null };
 }
 
-export async function getActiveSession() {
-  const rows = await supabaseAdminTable<SessionRow[]>("auction_sessions?select=*&is_active=eq.true&limit=1");
+export async function getActiveSession(): Promise<SessionRow | null> {
+  const rows = await supabaseAdminTable<SessionRow[]>("auction_sessions?is_active=eq.true&select=*&limit=1");
   return rows[0] ?? null;
 }
 
+async function patchSession(sessionId: string, payload: Record<string, unknown>) {
+  await supabaseAdminTable(`auction_sessions?id=eq.${sessionId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload)
+  });
+}
+
+async function processSale(session: SessionRow) {
+  if (!session.current_player_id || !session.current_bid_captain_id) return;
+
+  const teams = await supabaseAdminTable<any[]>(`teams?tournament_id=eq.${session.tournament_id}&select=id,captain_id`);
+  const team = teams.find((t) => t.captain_id === session.current_bid_captain_id);
+  if (!team) return;
+
+  const captain = await supabaseAdminTable<any[]>(`captains?id=eq.${session.current_bid_captain_id}&select=purse_points`);
+  const purse = captain[0]?.purse_points ?? 0;
+  const spent = session.current_bid_amount;
+
+  await Promise.all([
+    supabaseAdminTable("team_players", {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates,return=representation" },
+      body: JSON.stringify([{ team_id: team.id, player_id: session.current_player_id }])
+    }),
+    supabaseAdminTable(`auction_players?id=eq.${session.current_player_id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ sold_to_captain_id: session.current_bid_captain_id })
+    }),
+    supabaseAdminTable("auction_rounds", {
+      method: "POST",
+      body: JSON.stringify([{
+        id: crypto.randomUUID(),
+        session_id: session.id,
+        player_id: session.current_player_id,
+        captain_id: session.current_bid_captain_id,
+        state: "sold"
+      }])
+    }),
+    supabaseAdminTable(`captains?id=eq.${session.current_bid_captain_id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ purse_points: Math.max(0, purse - spent) })
+    })
+  ]);
+
+  await patchSession(session.id, {
+    state: "sold",
+    strike_count: 3,
+    bid_deadline: null,
+    current_player_id: null,
+    current_captain_turn: session.current_captain_turn + 1,
+    announcer_line: `🔨 SOLD for ₹${spent}! Captain picks up the player.`
+  });
+}
+
 export async function getAuctionSnapshot() {
-  const session = await getActiveSession();
+  let session = await getActiveSession();
   if (!session) return null;
 
-  const [pool, teams, rounds] = await Promise.all([
-    supabaseAdminTable<PoolRow[]>(`auction_pool?select=player_id,is_available,draw_order,auction_players(id,name,role,region,style,sold_to_captain_id)&session_id=eq.${session.id}&order=draw_order.asc.nullslast`),
-    supabaseAdminTable<any[]>(`teams?select=id,name,captain_id,team_players(player_id)&tournament_id=eq.${session.tournament_id}`),
-    supabaseAdminTable<any[]>(`auction_rounds?select=id,player_id,captain_id,state,created_at,auction_players(name)&session_id=eq.${session.id}&order=created_at.desc`)
+  // Auto-tick: advance strike/sold when bidding timer expires
+  if (session.state === "bidding" && session.bid_deadline) {
+    const expired = new Date(session.bid_deadline).getTime() < Date.now();
+    if (expired) {
+      if (!session.current_bid_captain_id) {
+        // No bids at all — extend timer, no strike
+        await patchSession(session.id, {
+          bid_deadline: new Date(Date.now() + BID_WINDOW_MS).toISOString(),
+          announcer_line: `No bids yet. Base price ₹${session.current_bid_amount}. Any captains?`
+        });
+      } else {
+        const newStrike = session.strike_count + 1;
+        if (newStrike >= 3) {
+          await processSale(session);
+        } else {
+          const msgs = ["🔨 Strike 1! Going once...", "🔨🔨 Strike 2! Going twice..."];
+          await patchSession(session.id, {
+            strike_count: newStrike,
+            bid_deadline: new Date(Date.now() + BID_WINDOW_MS).toISOString(),
+            announcer_line: msgs[newStrike - 1]
+          });
+        }
+      }
+      session = await getActiveSession();
+      if (!session) return null;
+    }
+  }
+
+  const [pool, teams, rounds, captains] = await Promise.all([
+    supabaseAdminTable<PoolRow[]>(`auction_pool?session_id=eq.${session.id}&select=player_id,is_available,draw_order,auction_players(id,name,role,region,style,sold_to_captain_id)&order=draw_order.asc.nullslast`),
+    supabaseAdminTable<any[]>(`teams?tournament_id=eq.${session.tournament_id}&select=id,name,captain_id,team_players(player_id)`),
+    supabaseAdminTable<any[]>(`auction_rounds?session_id=eq.${session.id}&select=id,player_id,captain_id,state,created_at,auction_players(name)&order=created_at.desc`),
+    supabaseAdminTable<any[]>("captains?select=id,name,tag,purse_points")
   ]);
 
   const currentPlayer = pool.find((p) => p.player_id === session.current_player_id)?.auction_players;
@@ -49,20 +139,19 @@ export async function getAuctionSnapshot() {
       captainId: t.captain_id,
       playerIds: (t.team_players ?? []).map((tp: { player_id: string }) => tp.player_id)
     })),
-    history: rounds.map((r) => ({ id: r.id, playerId: r.player_id, playerName: r.auction_players?.name, captainId: r.captain_id, state: r.state, createdAt: r.created_at }))
+    history: rounds.map((r) => ({ id: r.id, playerId: r.player_id, playerName: r.auction_players?.name, captainId: r.captain_id, state: r.state, createdAt: r.created_at })),
+    captains,
+    currentBidAmount: session.current_bid_amount,
+    currentBidCaptainId: session.current_bid_captain_id,
+    strikeCount: session.strike_count,
+    bidDeadline: session.bid_deadline
   };
 }
 
-async function patchSession(sessionId: string, payload: Record<string, unknown>) {
-  await supabaseAdminTable(`auction_sessions?id=eq.${sessionId}`, {
-    method: "PATCH",
-    body: JSON.stringify(payload)
-  });
-}
-
-export async function runAuctionAction(action: AuctionAction, captainId?: string, manualPlayerId?: string) {
+export async function runAuctionAction(action: AuctionAction, captainId?: string, manualPlayerId?: string, bidAmount?: number) {
   let session = await getActiveSession();
 
+  // --- START ---
   if (action === "start") {
     if (!session) {
       const rows = await supabaseAdminTable<any[]>("auction_sessions", {
@@ -71,131 +160,173 @@ export async function runAuctionAction(action: AuctionAction, captainId?: string
         body: JSON.stringify([{
           tournament_id: "gfl-s2",
           state: "waiting",
-          announcer_line: "Auction started. Ready for lot draw."
+          announcer_line: "Auction started. Ready for lot draw.",
+          current_bid_amount: 1,
+          strike_count: 0
         }])
       });
       session = rows[0];
-
-      // Automatically populate pool with all registered auction players
       if (session) {
         const players = await supabaseAdminTable<any[]>("auction_players?select=id");
         if (players.length > 0) {
-          const poolInserts = players.map(p => ({
-            session_id: session!.id,
-            player_id: p.id,
-            is_available: true
-          }));
           await supabaseAdminTable("auction_pool", {
             method: "POST",
-            body: JSON.stringify(poolInserts)
+            body: JSON.stringify(players.map(p => ({ session_id: session!.id, player_id: p.id, is_available: true })))
           }).catch(() => null);
         }
       }
     } else {
-      await patchSession(session.id, { state: "waiting", announcer_line: "Auction started. Ready for lot draw." });
+      await patchSession(session.id, { state: "waiting", announcer_line: "Auction ready." });
     }
     return;
   }
 
   if (!session) throw new Error("No active auction session");
 
-  if (action === "set_drawing") {
-    await patchSession(session.id, { state: "drawing", announcer_line: "Next player entering the auction pool..." });
-  }
-
+  // --- DRAW NEXT ---
   if (action === "draw_next") {
-    const available = await supabaseAdminTable<PoolRow[]>(`auction_pool?select=player_id,auction_players(id,name,role,region,style)&session_id=eq.${session.id}&is_available=eq.true`);
+    const available = await supabaseAdminTable<PoolRow[]>(`auction_pool?session_id=eq.${session.id}&is_available=eq.true&select=player_id,auction_players(id,name,role,region,style)`);
     if (!available.length) {
-      await patchSession(session.id, { state: "complete", announcer_line: "All players have entered the auction." });
+      await patchSession(session.id, { state: "complete", announcer_line: "All players have been auctioned." });
       return;
     }
-
-    const chosen = manualPlayerId ? available.find((row) => row.player_id === manualPlayerId) : available[Math.floor(Math.random() * available.length)];
-    if (!chosen) throw new Error("Chosen player is not available in pot");
+    const chosen = manualPlayerId ? available.find((r) => r.player_id === manualPlayerId) : available[Math.floor(Math.random() * available.length)];
+    if (!chosen) throw new Error("Player not available in pot");
 
     await supabaseAdminTable(`auction_pool?session_id=eq.${session.id}&player_id=eq.${chosen.player_id}`, {
       method: "PATCH",
-      body: JSON.stringify({ is_available: false, draw_order: Date.now() })
+      body: JSON.stringify({ is_available: false, draw_order: Date.now(), drawn_at: new Date().toISOString() })
     });
 
     await patchSession(session.id, {
       state: "player_reveal",
       current_player_id: chosen.player_id,
-      announcer_line: `Draw complete. ${chosen.auction_players.name} enters the auction.`
+      current_bid_amount: 1,
+      current_bid_captain_id: null,
+      strike_count: 0,
+      bid_deadline: null,
+      announcer_line: `${chosen.auction_players.name} enters the auction!`
     });
   }
 
-  if (action === "open_selection") {
-    await patchSession(session.id, { state: "selection", announcer_line: "Captains, prepare for the next selection." });
+  // --- OPEN BIDDING ---
+  if (action === "open_bidding") {
+    await patchSession(session.id, {
+      state: "bidding",
+      current_bid_amount: 1,
+      current_bid_captain_id: null,
+      strike_count: 0,
+      bid_deadline: new Date(Date.now() + BID_WINDOW_MS).toISOString(),
+      announcer_line: `Bidding open! Base price ₹1. Timer: ${BID_WINDOW_MS / 1000}s`
+    });
   }
 
-  if (action === "pick") {
-    if (!captainId) throw new Error("captainId is required for pick");
-    if (!session.current_player_id) throw new Error("No active player revealed");
+  // --- BID ---
+  if (action === "bid") {
+    if (!captainId) throw new Error("captainId required to bid");
+    if (!bidAmount || bidAmount <= session.current_bid_amount) {
+      throw new Error(`Bid must be higher than current ₹${session.current_bid_amount}`);
+    }
+    if (session.state !== "bidding") throw new Error("Bidding is not currently open");
 
-    const teams = await supabaseAdminTable<any[]>(`teams?select=id,captain_id&tournament_id=eq.${session.tournament_id}`);
-    const team = teams.find((t) => t.captain_id === captainId);
-    if (!team) throw new Error("Captain team not found");
-
-    await supabaseAdminTable("team_players", {
-      method: "POST",
-      headers: { Prefer: "resolution=merge-duplicates,return=representation" },
-      body: JSON.stringify([{ team_id: team.id, player_id: session.current_player_id }])
-    });
-
-    await supabaseAdminTable(`auction_players?id=eq.${session.current_player_id}`, {
-      method: "PATCH",
-      body: JSON.stringify({ sold_to_captain_id: captainId })
-    });
-
-    await supabaseAdminTable("auction_rounds", {
-      method: "POST",
-      body: JSON.stringify([
-        {
-          id: crypto.randomUUID(),
-          session_id: session.id,
-          player_id: session.current_player_id,
-          captain_id: captainId,
-          state: "sold"
-        }
-      ])
-    });
+    const captains = await supabaseAdminTable<any[]>(`captains?id=eq.${captainId}&select=purse_points,name`);
+    const cap = captains[0];
+    if (!cap) throw new Error("Captain not found");
+    if (bidAmount > cap.purse_points) throw new Error(`₹${bidAmount} exceeds your remaining purse (₹${cap.purse_points})`);
 
     await patchSession(session.id, {
-      state: "sold",
-      announcer_line: "Player sold. Awaiting next lot draw.",
-      current_player_id: null,
-      current_captain_turn: session.current_captain_turn + 1
+      current_bid_amount: bidAmount,
+      current_bid_captain_id: captainId,
+      strike_count: 0,
+      bid_deadline: new Date(Date.now() + BID_WINDOW_MS).toISOString(),
+      announcer_line: `${cap.name} bids ₹${bidAmount}! Timer reset.`
     });
   }
 
+  // --- HAMMER (manual strike by commissioner) ---
+  if (action === "hammer") {
+    if (session.state !== "bidding") throw new Error("No active bidding to hammer");
+
+    if (!session.current_bid_captain_id) {
+      // No bids — just reset timer
+      await patchSession(session.id, {
+        bid_deadline: new Date(Date.now() + BID_WINDOW_MS).toISOString(),
+        announcer_line: "No bids. Timer extended."
+      });
+    } else {
+      const newStrike = session.strike_count + 1;
+      if (newStrike >= 3) {
+        await processSale(session);
+      } else {
+        const msgs = ["🔨 Strike 1! Going once...", "🔨🔨 Strike 2! Going twice..."];
+        await patchSession(session.id, {
+          strike_count: newStrike,
+          bid_deadline: new Date(Date.now() + BID_WINDOW_MS).toISOString(),
+          announcer_line: msgs[newStrike - 1]
+        });
+      }
+    }
+  }
+
+  // --- MANUAL PICK (override, commissioner) ---
+  if (action === "pick") {
+    if (!captainId) throw new Error("captainId required for pick");
+    if (!session.current_player_id) throw new Error("No active player");
+
+    const teams = await supabaseAdminTable<any[]>(`teams?tournament_id=eq.${session.tournament_id}&select=id,captain_id,team_players(player_id)`);
+    const team = teams.find((t) => t.captain_id === captainId);
+    if (!team) throw new Error("Captain's team not found");
+
+    const teamSize = (team.team_players ?? []).length;
+    if (teamSize >= MAX_TEAM_PLAYERS) throw new Error(`Team full (${MAX_TEAM_PLAYERS} players + captain)`);
+
+    const fakeSess = { ...session, current_bid_captain_id: captainId, current_bid_amount: session.current_bid_amount || 1 };
+    await processSale(fakeSess as SessionRow);
+  }
+
+  // --- NEXT ROUND ---
   if (action === "next") {
-    const remaining = await supabaseAdminTable<any[]>(`auction_pool?select=player_id&session_id=eq.${session.id}&is_available=eq.true`);
+    const remaining = await supabaseAdminTable<any[]>(`auction_pool?session_id=eq.${session.id}&is_available=eq.true&select=player_id`);
     await patchSession(session.id, {
       state: remaining.length ? "waiting" : "complete",
-      announcer_line: remaining.length ? "Ready for next lot draw." : "Auction complete.",
-      current_player_id: null
+      current_player_id: null,
+      current_bid_amount: 1,
+      current_bid_captain_id: null,
+      strike_count: 0,
+      bid_deadline: null,
+      announcer_line: remaining.length ? `${remaining.length} player(s) remaining. Ready for next draw.` : "Auction complete! All players sold."
     });
   }
 
+  // --- RESET ---
   if (action === "reset") {
     await Promise.all([
       supabaseAdminTable(`auction_pool?session_id=eq.${session.id}`, {
         method: "PATCH",
-        body: JSON.stringify({ is_available: true, draw_order: null })
+        body: JSON.stringify({ is_available: true, draw_order: null, drawn_at: null, sold_at: null, sold_to_captain_id: null })
       }),
       supabaseAdminTable(`auction_players?sold_to_captain_id=not.is.null`, {
         method: "PATCH",
         body: JSON.stringify({ sold_to_captain_id: null })
       }),
-      supabaseAdminTable(`team_players?team_id=not.is.null`, { method: "DELETE" }),
+      supabaseAdminTable(`team_players?team_id=in.(${(await supabaseAdminTable<any[]>(`teams?tournament_id=eq.${session.tournament_id}&select=id`)).map((t: any) => t.id).join(",") || "null"})`, { method: "DELETE" }),
       supabaseAdminTable(`auction_rounds?session_id=eq.${session.id}`, { method: "DELETE" })
-    ]);
+    ]).catch(() => null);
 
-    await patchSession(session.id, { state: "waiting", current_player_id: null, announcer_line: "Auction reset complete.", current_captain_turn: 0 });
+    await patchSession(session.id, {
+      state: "waiting",
+      current_player_id: null,
+      current_bid_amount: 1,
+      current_bid_captain_id: null,
+      strike_count: 0,
+      bid_deadline: null,
+      current_captain_turn: 0,
+      announcer_line: "Auction reset. Ready to start again."
+    });
   }
 
+  // --- CLOSE ---
   if (action === "close") {
-    await patchSession(session.id, { state: "complete", is_active: false, announcer_line: "Auction closed by admin." });
+    await patchSession(session.id, { state: "complete", is_active: false, bid_deadline: null, announcer_line: "Auction closed." });
   }
 }

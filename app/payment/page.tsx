@@ -84,9 +84,8 @@ export default function PaymentPage() {
     return (
       <div className="py-8 space-y-5">
         <h1 className="section-title text-neon">Step 1: Player Details Required</h1>
-        <p className="text-white/70">You must complete your BGMI details before proceeding to the entry payment.</p>
-        <ProfileEditor />
-        <button className="cta-primary mt-4" onClick={load}>I've completed my profile → Continue to Payment</button>
+        <p className="text-white/70">Fill in all fields and click Save — you will automatically proceed to payment.</p>
+        <ProfileEditor onComplete={() => { setProfileComplete(true); load(); }} />
       </div>
     );
   }

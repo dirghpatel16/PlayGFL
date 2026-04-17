@@ -8,7 +8,7 @@ import { isSupabaseConfigured, supabaseAdminTable } from "@/lib/supabase/rest";
 export async function GET() {
   if (isSupabaseConfigured()) {
     const captains = await supabaseAdminTable<any[]>("captains?select=*");
-    return NextResponse.json({ captains: captains.map((c) => ({ id: c.id, name: c.name, tag: c.tag, region: c.region, pursePoints: c.purse_points })) });
+    return NextResponse.json({ captains: captains.map((c) => ({ id: c.id, name: c.name, tag: c.tag, region: c.region, pursePoints: c.purse_points, user_id: c.user_id ?? null })) });
   }
   return NextResponse.json({ captains: getPublicState().captains });
 }
@@ -67,14 +67,17 @@ export async function PATCH(req: NextRequest) {
   const body = await parseJSON(req);
   if (!body) return badRequest("Invalid JSON body");
   const captainId = asNonEmptyString(body.captainId);
-  const name = asNonEmptyString(body.name);
-  if (!captainId || !name) return badRequest("captainId and name are required");
+  if (!captainId) return badRequest("captainId is required");
 
   if (isSupabaseConfigured()) {
-    await supabaseAdminTable(`captains?id=eq.${captainId}`, { method: "PATCH", body: JSON.stringify({ name }) });
+    const patch: Record<string, unknown> = {};
+    if (body.name !== undefined) patch.name = asNonEmptyString(body.name);
+    if (body.user_id !== undefined) patch.user_id = body.user_id ? String(body.user_id) : null;
+    if (!Object.keys(patch).length) return badRequest("No fields to update");
+    await supabaseAdminTable(`captains?id=eq.${captainId}`, { method: "PATCH", body: JSON.stringify(patch) });
     return NextResponse.json({ ok: true });
   }
 
-  renameCaptain(captainId, name);
+  if (body.name) renameCaptain(captainId, String(body.name));
   return NextResponse.json({ ok: true });
 }
