@@ -23,7 +23,7 @@ interface PoolRow {
   player_id: string;
   is_available: boolean;
   draw_order: number | null;
-  auction_players: { id: string; name: string; role: string; region: string; style: string; sold_to_captain_id: string | null };
+  auction_players: { id: string; name: string; role: string; region: string; style: string; sold_to_captain_id: string | null; base_price: number };
 }
 
 export async function getActiveSession(): Promise<SessionRow | null> {
@@ -90,7 +90,7 @@ export async function getAuctionSnapshot() {
   if (!session) return null;
 
   const [pool, teams, rounds, captains, allPlayers] = await Promise.all([
-    supabaseAdminTable<PoolRow[]>(`auction_pool?session_id=eq.${session.id}&select=player_id,is_available,draw_order,auction_players(id,name,role,region,style,sold_to_captain_id)&order=draw_order.asc.nullslast`),
+    supabaseAdminTable<PoolRow[]>(`auction_pool?session_id=eq.${session.id}&select=player_id,is_available,draw_order,auction_players(id,name,role,region,style,sold_to_captain_id,base_price)&order=draw_order.asc.nullslast`),
     supabaseAdminTable<any[]>(`teams?tournament_id=eq.${session.tournament_id}&select=id,name,captain_id,team_players(player_id)`),
     supabaseAdminTable<any[]>(`auction_rounds?session_id=eq.${session.id}&select=id,player_id,captain_id,state,created_at,auction_players(name)&order=created_at.desc`),
     supabaseAdminTable<any[]>("captains?select=id,name,tag,purse_points"),
@@ -118,8 +118,7 @@ export async function getAuctionSnapshot() {
     currentCaptainTurnIndex: session.current_captain_turn,
     announcerLine: session.announcer_line ?? "Auction control ready",
     currentPlayer,
-    pot: pool.filter((p) => p.is_available).map((p) => p.auction_players),
-    teams: teams.map((t) => ({
+    pot: pool.filter((p) => p.is_available).map((p) => p.auction_players),    teams: teams.map((t) => ({
       id: t.id,
       name: t.name,
       captainId: t.captain_id,
@@ -171,7 +170,7 @@ export async function runAuctionAction(action: AuctionAction, captainId?: string
 
   // --- DRAW NEXT ---
   if (action === "draw_next") {
-    const available = await supabaseAdminTable<PoolRow[]>(`auction_pool?session_id=eq.${session.id}&is_available=eq.true&select=player_id,auction_players(id,name,role,region,style)`);
+    const available = await supabaseAdminTable<PoolRow[]>(`auction_pool?session_id=eq.${session.id}&is_available=eq.true&select=player_id,auction_players(id,name,role,region,style,base_price)`);
     if (!available.length) {
       await patchSession(session.id, { state: "complete", announcer_line: "All players have been auctioned." });
       return;
@@ -187,11 +186,11 @@ export async function runAuctionAction(action: AuctionAction, captainId?: string
     await patchSession(session.id, {
       state: "player_reveal",
       current_player_id: chosen.player_id,
-      current_bid_amount: 1,
+      current_bid_amount: chosen.auction_players.base_price ?? 1,
       current_bid_captain_id: null,
       strike_count: 0,
       bid_deadline: null,
-      announcer_line: `${chosen.auction_players.name} enters the auction!`
+      announcer_line: `${chosen.auction_players.name} enters the auction! Base price ₹${chosen.auction_players.base_price ?? 1}`
     });
   }
 

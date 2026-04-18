@@ -7,10 +7,10 @@ import { SpinWheel } from "@/components/auction/SpinWheel";
 interface AuctionRuntime {
   id?: string;
   state: "waiting" | "drawing" | "player_reveal" | "bidding" | "sold" | "complete";
-  currentPlayer?: { id: string; name: string; role: string; region: string; style: string };
+  currentPlayer?: { id: string; name: string; role: string; region: string; style: string; base_price: number };
   currentCaptainTurnIndex: number;
   teams: { id: string; name: string; captainId: string; playerIds: string[] }[];
-  pot: { id: string; name: string; role: string }[];
+  pot: { id: string; name: string; role: string; base_price: number }[];
   announcerLine: string;
   history: { id: string; playerId?: string; playerName?: string; captainId?: string; state: string; createdAt: string }[];
   captains: { id: string; name: string; tag: string; purse_points: number }[];
@@ -61,6 +61,8 @@ export function AuctionStagePanel() {
           lastRevealedId.current = d.currentPlayer.id;
           setSpinKey(d.currentPlayer.id);
           setSpinDone(false);
+          // Pre-fill base price from the drawn player
+          setBasePriceInput(String(d.currentPlayer.base_price ?? 1));
         }
         if (d.state !== "player_reveal") {
           setSpinKey(null);
@@ -151,6 +153,7 @@ export function AuctionStagePanel() {
                     <p className="mt-2 text-xs uppercase tracking-[0.14em] text-white/60">
                       {runtime.currentPlayer.role}
                     </p>
+                    <p className="mt-1 text-sm font-bold text-neon">Base Price: ₹{runtime.currentPlayer.base_price ?? 1}</p>
                   </div>
                 ) : (
                   <p className="mt-3 text-sm text-white/50">No active player</p>
@@ -253,7 +256,12 @@ export function AuctionStagePanel() {
                 <p className="mt-1 text-3xl font-black text-neon">{runtime?.pot.length ?? 0}</p>
                 <ul className="mt-3 max-h-36 space-y-1 overflow-auto border-t border-white/10 pt-2 text-xs text-white/75">
                   {runtime?.pot?.length
-                    ? runtime.pot.map((p) => <li key={p.id}>• {p.name}</li>)
+                    ? runtime.pot.map((p) => (
+                        <li key={p.id} className="flex justify-between">
+                          <span>• {p.name}</span>
+                          <span className="text-white/40">₹{p.base_price ?? 1}</span>
+                        </li>
+                      ))
                     : <li className="text-white/40">Pot empty</li>}
                 </ul>
               </div>
@@ -281,11 +289,10 @@ export function AuctionStagePanel() {
           <div className="mt-5 border-t border-white/10 pt-4">
             <p className="text-xs uppercase tracking-[0.18em] text-white/50 mb-3">Commissioner Controls</p>
             <div className="flex flex-wrap gap-2">
-              {runtime?.state === "waiting" || !runtime ? (
-                <>
-                  <button className="cta-primary" onClick={() => act("start")}>▶ Start Auction</button>
-                  <button className="cta-ghost" onClick={() => act("draw_next")}>🎲 Draw Player</button>
-                </>
+              {!runtime ? (
+                <button className="cta-primary" onClick={() => act("start")}>▶ Start Auction</button>
+              ) : runtime.state === "waiting" ? (
+                <button className="cta-primary" onClick={() => act("draw_next")}>🎲 Draw First Player</button>
               ) : runtime.state === "player_reveal" ? (
                 <>
                   <button className="cta-ghost" onClick={() => act("draw_next")}>🎲 Draw Next</button>
