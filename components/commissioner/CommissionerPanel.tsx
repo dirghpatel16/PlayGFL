@@ -130,12 +130,12 @@ export function CommissionerPanel() {
   };
 
   const confirmPayment = async (userId: string) => {
-    await fetchJSON("/api/payment", "PATCH", { userId, action: "confirm" });
+    await fetchJSON("/api/payment", { method: "PATCH", body: JSON.stringify({ userId, action: "confirm" }) });
     setMessage("Payment confirmed.");
   };
 
   const rejectPayment = async (userId: string) => {
-    await fetchJSON("/api/payment", "PATCH", { userId, action: "reject" });
+    await fetchJSON("/api/payment", { method: "PATCH", body: JSON.stringify({ userId, action: "reject" }) });
     setMessage("Payment rejected.");
   };
 
