@@ -39,11 +39,11 @@ function useCountdown(deadline: string | null) {
 
 export function AuctionStagePanel() {
   const [runtime, setRuntime] = useState<AuctionRuntime | null>(null);
-  const [myCaptain, setMyCaptain] = useState<{ id: string; name: string; tag: string; purse_points: number } | null>(null);
   const [error, setError] = useState("");
   const [isCommissioner, setIsCommissioner] = useState(false);
-  const [bidInput, setBidInput] = useState("");
+  const [captainBidInputs, setCaptainBidInputs] = useState<Record<string, string>>({});
   const [bidError, setBidError] = useState("");
+  const [basePriceInput, setBasePriceInput] = useState("1");
 
   // Spinning wheel state — trigger once per reveal
   const [spinKey, setSpinKey] = useState<string | null>(null);
@@ -69,7 +69,6 @@ export function AuctionStagePanel() {
       })
       .catch((e) => setError(e.message));
     fetchJSON<{ enabled: boolean }>("/api/commissioner/session").then((d) => setIsCommissioner(d.enabled)).catch(() => setIsCommissioner(false));
-    fetchJSON<{ captain: typeof myCaptain }>("/api/auction/captain").then((d) => setMyCaptain(d.captain)).catch(() => null);
   };
 
   useEffect(() => {
@@ -91,21 +90,16 @@ export function AuctionStagePanel() {
     }
   };
 
-  const placeBid = async () => {
+  const placeBidForCaptain = async (captainId: string) => {
     setBidError("");
-    const amount = parseInt(bidInput, 10);
-    if (!myCaptain) { setBidError("You are not a captain."); return; }
+    const amount = parseInt(captainBidInputs[captainId] ?? "", 10);
     if (!amount || isNaN(amount) || amount <= (runtime?.currentBidAmount ?? 0)) {
-      setBidError(`Bid must be higher than ₹${runtime?.currentBidAmount ?? 0}`);
+      setBidError(`Bid must be higher than current ₹${runtime?.currentBidAmount ?? 0}`);
       return;
     }
     try {
-      await fetchJSON("/api/auction/state", {
-        method: "POST",
-        body: JSON.stringify({ action: "bid", captainId: myCaptain.id, bidAmount: amount })
-      });
-      setBidInput("");
-      load();
+      await act("bid", { captainId, bidAmount: amount });
+      setCaptainBidInputs((prev) => ({ ...prev, [captainId]: "" }));
     } catch (err) {
       setBidError(err instanceof Error ? err.message : "Bid failed");
     }
@@ -190,60 +184,62 @@ export function AuctionStagePanel() {
                         <span className="text-white/60 text-xs ml-2">by {currentBidCaptainName}</span>
                       </p>
                     ) : (
-                      <p className="text-sm text-white/60">No bids yet. Base: <span className="text-white">₹1</span></p>
+                      <p className="text-sm text-white/60">No bids yet. Base: <span className="text-white">₹{runtime.currentBidAmount}</span></p>
                     )}
                   </div>
 
-                  {/* Captain bid input */}
-                  {myCaptain && (
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.14em] text-neon mb-2">
-                        {myCaptain.name} · Purse: ₹{myCaptain.purse_points}
-                      </p>
-                      <div className="flex gap-2">
-                        <input
-                          type="number"
-                          min={(runtime.currentBidAmount ?? 1) + 1}
-                          value={bidInput}
-                          onChange={(e) => setBidInput(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && placeBid()}
-                          placeholder={`₹${(runtime.currentBidAmount ?? 0) + 1}+`}
-                          className="bg-black/60 border border-white/20 px-3 py-2 text-sm w-28 text-white placeholder:text-white/30 focus:outline-none focus:border-neon"
-                        />
-                        <button className="cta-primary text-sm px-4" onClick={placeBid}>BID</button>
-                        {/* Quick bid buttons */}
-                        {[1, 5, 10].map((inc) => (
+                  {/* Commissioner bidding panel */}
+                  {isCommissioner && (
+                    <div className="space-y-2 border-t border-white/10 pt-3">
+                      <p className="text-xs uppercase tracking-[0.14em] text-neon">Place bid for captain</p>
+                      {allCaptains.map((c) => {
+                        const isLeading = c.id === runtime.currentBidCaptainId;
+                        const canAfford = c.purse_points > runtime.currentBidAmount;
+                        return (
+                          <div key={c.id} className={`flex items-center gap-2 rounded p-2 ${isLeading ? "bg-neon/10 border border-neon/30" : "bg-white/5"}`}>
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-xs font-bold truncate ${isLeading ? "text-neon" : "text-white/80"}`}>
+                                {c.name} {isLeading ? "🏆" : ""}
+                              </p>
+                              <p className={`text-[10px] ${canAfford ? "text-white/50" : "text-danger/70"}`}>
+                                Purse: ₹{c.purse_points}{!canAfford ? " (can't afford)" : ""}
+                              </p>
+                            </div>
+                            <input
+                              type="number"
+                              min={runtime.currentBidAmount + 1}
+                              placeholder={`₹${runtime.currentBidAmount + 1}+`}
+                              value={captainBidInputs[c.id] ?? ""}
+                              onChange={(e) => setCaptainBidInputs((prev) => ({ ...prev, [c.id]: e.target.value }))}
+                              onKeyDown={(e) => e.key === "Enter" && placeBidForCaptain(c.id)}
+                              className="w-24 bg-black/60 border border-white/20 px-2 py-1 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-neon"
+                              disabled={!canAfford}
+                            />
+                            <button
+                              className="border border-neon/50 bg-neon/10 px-3 py-1 text-xs font-bold text-neon disabled:opacity-30"
+                              onClick={() => placeBidForCaptain(c.id)}
+                              disabled={!canAfford}
+                            >
+                              BID
+                            </button>
+                          </div>
+                        );
+                      })}
+                      {bidError && <p className="text-xs text-danger">{bidError}</p>}
+                      <div className="flex gap-2 pt-1">
+                        <button className="border border-white/30 bg-white/5 px-3 py-2 text-xs font-bold uppercase" onClick={() => act("hammer")}>
+                          🔨 Strike
+                        </button>
+                        {allCaptains.map((c) => (
                           <button
-                            key={inc}
-                            className="border border-white/20 bg-white/5 px-3 py-2 text-xs font-bold"
-                            onClick={() => {
-                              const next = (runtime.currentBidAmount ?? 0) + inc;
-                              setBidInput(String(next));
-                            }}
+                            key={c.id}
+                            className="border border-orange-400/40 bg-orange-400/10 px-3 py-2 text-xs font-bold uppercase text-orange-300"
+                            onClick={() => act("pick", { captainId: c.id })}
                           >
-                            +{inc}
+                            Force → {c.tag ?? c.name}
                           </button>
                         ))}
                       </div>
-                      {bidError && <p className="mt-1 text-xs text-danger">{bidError}</p>}
-                    </div>
-                  )}
-
-                  {/* Commissioner controls in bidding phase */}
-                  {isCommissioner && (
-                    <div className="flex flex-wrap gap-2 border-t border-white/10 pt-3">
-                      <button className="border border-white/30 bg-white/5 px-3 py-2 text-xs font-bold uppercase" onClick={() => act("hammer")}>
-                        🔨 Strike
-                      </button>
-                      {allCaptains.map((c) => (
-                        <button
-                          key={c.id}
-                          className="border border-neon/40 bg-neon/10 px-3 py-2 text-xs font-bold uppercase text-neon"
-                          onClick={() => act("pick", { captainId: c.id })}
-                        >
-                          Force → {c.name}
-                        </button>
-                      ))}
                     </div>
                   )}
                 </div>
@@ -293,10 +289,20 @@ export function AuctionStagePanel() {
               ) : runtime.state === "player_reveal" ? (
                 <>
                   <button className="cta-ghost" onClick={() => act("draw_next")}>🎲 Draw Next</button>
-                  <button className="cta-primary" onClick={() => act("open_bidding")}>💰 Open Bidding</button>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={1}
+                      value={basePriceInput}
+                      onChange={(e) => setBasePriceInput(e.target.value)}
+                      placeholder="Base ₹"
+                      className="w-20 bg-black/60 border border-white/20 px-2 py-2 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-neon"
+                    />
+                    <button className="cta-primary" onClick={() => act("open_bidding", { bidAmount: parseInt(basePriceInput, 10) || 1 })}>💰 Open Bidding</button>
+                  </div>
                 </>
               ) : runtime.state === "bidding" ? (
-                <button className="cta-ghost" onClick={() => act("hammer")}>🔨 Manual Strike</button>
+                <p className="text-xs text-white/50 italic">Use bidding panel above for strikes &amp; bids</p>
               ) : runtime.state === "sold" ? (
                 <button className="cta-primary" onClick={() => act("next")}>▶ Next Player</button>
               ) : runtime.state === "complete" ? null : (

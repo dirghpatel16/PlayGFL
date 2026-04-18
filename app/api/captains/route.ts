@@ -27,8 +27,8 @@ export async function POST(req: NextRequest) {
 
   if (!name || !tag) return badRequest("name and tag are required");
 
-  const purseValue = Number(body.pursePoints ?? 100);
-  const pursePoints = Number.isFinite(purseValue) ? purseValue : 100;
+  const purseValue = Number(body.pursePoints ?? 50);
+  const pursePoints = Number.isFinite(purseValue) ? purseValue : 50;
 
   if (isSupabaseConfigured()) {
     const captainId = crypto.randomUUID();
@@ -59,6 +59,20 @@ export async function DELETE(req: NextRequest) {
   if (!captainId) return badRequest("captainId is required");
 
   if (isSupabaseConfigured()) {
+    // Fetch captain before deleting so we can restore them to the pot
+    const caps = await supabaseAdminTable<any[]>(`captains?id=eq.${captainId}&select=*`);
+    const cap = caps[0];
+    if (cap) {
+      // Re-add to auction_players so they appear back in the pot
+      const restoreId = cap.user_id || captainId;
+      await supabaseAdminTable("auction_players", {
+        method: "POST",
+        headers: { Prefer: "resolution=ignore-duplicates,return=minimal" },
+        body: JSON.stringify([{ id: restoreId, name: cap.name, role: "Captain", region: cap.region ?? "", style: "IGL" }])
+      }).catch(() => null);
+      // Delete their team
+      await supabaseAdminTable(`teams?captain_id=eq.${captainId}`, { method: "DELETE" }).catch(() => null);
+    }
     await supabaseAdminTable(`captains?id=eq.${captainId}`, { method: "DELETE" });
     return NextResponse.json({ ok: true });
   }

@@ -89,34 +89,6 @@ export async function getAuctionSnapshot() {
   let session = await getActiveSession();
   if (!session) return null;
 
-  // Auto-tick: advance strike/sold when bidding timer expires
-  if (session.state === "bidding" && session.bid_deadline) {
-    const expired = new Date(session.bid_deadline).getTime() < Date.now();
-    if (expired) {
-      if (!session.current_bid_captain_id) {
-        // No bids at all — extend timer, no strike
-        await patchSession(session.id, {
-          bid_deadline: new Date(Date.now() + BID_WINDOW_MS).toISOString(),
-          announcer_line: `No bids yet. Base price ₹${session.current_bid_amount}. Any captains?`
-        });
-      } else {
-        const newStrike = session.strike_count + 1;
-        if (newStrike >= 3) {
-          await processSale(session);
-        } else {
-          const msgs = ["🔨 Strike 1! Going once...", "🔨🔨 Strike 2! Going twice..."];
-          await patchSession(session.id, {
-            strike_count: newStrike,
-            bid_deadline: new Date(Date.now() + BID_WINDOW_MS).toISOString(),
-            announcer_line: msgs[newStrike - 1]
-          });
-        }
-      }
-      session = await getActiveSession();
-      if (!session) return null;
-    }
-  }
-
   const [pool, teams, rounds, captains, allPlayers] = await Promise.all([
     supabaseAdminTable<PoolRow[]>(`auction_pool?session_id=eq.${session.id}&select=player_id,is_available,draw_order,auction_players(id,name,role,region,style,sold_to_captain_id)&order=draw_order.asc.nullslast`),
     supabaseAdminTable<any[]>(`teams?tournament_id=eq.${session.tournament_id}&select=id,name,captain_id,team_players(player_id)`),
@@ -225,13 +197,14 @@ export async function runAuctionAction(action: AuctionAction, captainId?: string
 
   // --- OPEN BIDDING ---
   if (action === "open_bidding") {
+    const basePrice = bidAmount && bidAmount > 0 ? bidAmount : 1;
     await patchSession(session.id, {
       state: "bidding",
-      current_bid_amount: 1,
+      current_bid_amount: basePrice,
       current_bid_captain_id: null,
       strike_count: 0,
       bid_deadline: new Date(Date.now() + BID_WINDOW_MS).toISOString(),
-      announcer_line: `Bidding open! Base price ₹1. Timer: ${BID_WINDOW_MS / 1000}s`
+      announcer_line: `Bidding open! Base price ₹${basePrice}. Commissioner is taking bids.`
     });
   }
 

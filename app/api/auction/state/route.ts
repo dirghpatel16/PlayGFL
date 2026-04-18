@@ -7,8 +7,8 @@ import { requireCommissionerRequest } from "@/lib/auth/commissioner";
 import { getSessionUser } from "@/lib/auth/session";
 
 const allowedActions = new Set(["start", "draw_next", "open_bidding", "bid", "hammer", "pick", "next", "reset", "close"] as const);
-// bid action is auth-checked separately (captain-only)
-const commissionerOnlyActions = new Set(["start", "draw_next", "open_bidding", "hammer", "pick", "next", "reset", "close"]);
+// All actions are commissioner-only — captains no longer self-bid
+const commissionerOnlyActions = new Set(["start", "draw_next", "open_bidding", "bid", "hammer", "pick", "next", "reset", "close"]);
 
 export async function GET() {
   if (isSupabaseConfigured()) {
@@ -34,11 +34,7 @@ export async function POST(req: NextRequest) {
   if (!action || !allowedActions.has(action)) return badRequest("Invalid auction action");
 
   if (isSupabaseConfigured()) {
-    if (action === "bid") {
-      // Captains can bid — verify the user is signed in
-      const authUser = await getSessionUser();
-      if (!authUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    } else if (commissionerOnlyActions.has(action)) {
+    if (commissionerOnlyActions.has(action)) {
       const blocked = requireCommissionerRequest(req);
       if (blocked) return blocked;
     }
